@@ -338,29 +338,52 @@
           <div class="card" style="grid-column: span 12">
             <h3>Whoop Metrics (dernières 24h)</h3>
             <div class="grid">
-              <div class="card" style="grid-column: span 3; padding:10px">
+              <div class="card" style="grid-column: span 2; padding:10px">
                 <h3 style="margin:0 0 6px 0; font-size:11px">💪 Strain</h3>
                 <div class="kpi"><div class="val" style="font-size:24px; font-weight:800" id="whoopStrainToday">—</div></div>
               </div>
-              <div class="card" style="grid-column: span 3; padding:10px">
-                <h3 style="margin:0 0 6px 0; font-size:11px">🔥 Calories</h3>
+              <div class="card" style="grid-column: span 2; padding:10px">
+                <h3 style="margin:0 0 6px 0; font-size:11px">🔥 Brûlées</h3>
                 <div class="kpi"><div class="val" style="font-size:24px; font-weight:800" id="whoopCaloriesToday">—</div></div>
               </div>
-              <div class="card" style="grid-column: span 3; padding:10px; opacity:0.4">
-                <h3 style="margin:0 0 6px 0; font-size:11px">💚 Recovery</h3>
-                <div class="kpi"><div class="val" style="font-size:20px" id="whoopRecoveryToday">—</div></div>
-                <span style="font-size:9px; color:var(--muted2)">API indisponible</span>
+              <div class="card" style="grid-column: span 2; padding:10px">
+                <h3 style="margin:0 0 6px 0; font-size:11px">🥗 Consommées</h3>
+                <div class="kpi"><div class="val" style="font-size:24px; font-weight:800" id="caloriesConsumedToday">—</div></div>
               </div>
-              <div class="card" style="grid-column: span 3; padding:10px; opacity:0.4">
+              <div class="card" style="grid-column: span 2; padding:10px">
+                <h3 style="margin:0 0 6px 0; font-size:11px">📊 Déficit</h3>
+                <div class="kpi"><div class="val" style="font-size:24px; font-weight:800" id="calorieDeficitToday">—</div></div>
+              </div>
+              <div class="card" style="grid-column: span 2; padding:10px; opacity:0.4">
+                <h3 style="margin:0 0 6px 0; font-size:11px">💚 Recovery</h3>
+                <div class="kpi"><div class="val" style="font-size:18px" id="whoopRecoveryToday">—</div></div>
+                <span style="font-size:9px; color:var(--muted2)">API indispo</span>
+              </div>
+              <div class="card" style="grid-column: span 2; padding:10px; opacity:0.4">
                 <h3 style="margin:0 0 6px 0; font-size:11px">😴 Sleep (h)</h3>
-                <div class="kpi"><div class="val" style="font-size:20px" id="whoopSleep">—</div></div>
-                <span style="font-size:9px; color:var(--muted2)">API indisponible</span>
+                <div class="kpi"><div class="val" style="font-size:18px" id="whoopSleep">—</div></div>
+                <span style="font-size:9px; color:var(--muted2)">API indispo</span>
               </div>
             </div>
           </div>
           <div class="card" style="grid-column: span 12">
             <h3>Whoop Tendances (30j)</h3>
             <div class="chartWrap"><canvas id="whoopChart"></canvas></div>
+          </div>
+          <div class="card" style="grid-column: span 12">
+            <h3>📅 Historique Whoop (7 derniers jours)</h3>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>💪 Strain</th>
+                  <th>🔥 Calories</th>
+                  <th>🥗 Consommées</th>
+                  <th>📊 Déficit</th>
+                </tr>
+              </thead>
+              <tbody id="whoopHistoryTable"></tbody>
+            </table>
           </div>
           <div class="card" style="grid-column: span 5">
             <h3>PRs récents</h3>
@@ -790,8 +813,45 @@
       const today = whoop.find(r => r.date === isoToday()) || whoop[0] || {};
       $('#whoopRecoveryToday').textContent = today.recovery_score ?? '—';
       $('#whoopStrainToday').textContent = today.strain ?? '—';
-      $('#whoopCaloriesToday').textContent = today.calories ? `${today.calories} kcal` : '—';
+      $('#whoopCaloriesToday').textContent = today.calories ? `${today.calories}` : '—';
       $('#whoopSleep').textContent = today.sleep_hours ? today.sleep_hours.toFixed(1) : '—';
+
+      // Caloric deficit today
+      const nutritionToday = await api(`/nutrition?start=${isoDate()}&end=${isoDate()}`);
+      const consumedToday = nutritionToday.reduce((sum, n) => sum + (n.calories || 0), 0);
+      const burnedToday = today.calories || 0;
+      const deficitToday = burnedToday - consumedToday;
+      
+      $('#caloriesConsumedToday').textContent = consumedToday || '—';
+      const deficitEl = $('#calorieDeficitToday');
+      deficitEl.textContent = deficitToday ? (deficitToday > 0 ? '+' : '') + deficitToday : '—';
+      deficitEl.style.color = deficitToday > 0 ? 'var(--good)' : deficitToday < 0 ? 'var(--bad)' : 'var(--text)';
+
+      // Whoop history table with caloric deficit
+      const nutrition = await api(`/nutrition?start=${new Date(Date.now()-7*864e5).toISOString().slice(0,10)}&end=${isoToday()}`);
+      const nutritionByDate = {};
+      nutrition.forEach(n => {
+        const date = n.date.split('T')[0];
+        nutritionByDate[date] = (nutritionByDate[date] || 0) + (n.calories || 0);
+      });
+
+      const last7 = whoop.slice(0, 7).reverse();
+      const historyTable = $('#whoopHistoryTable');
+      historyTable.innerHTML = last7.map(r => {
+        const date = r.date.split('T')[0];
+        const consumed = nutritionByDate[date] || 0;
+        const burned = r.calories || 0;
+        const deficit = burned - consumed;
+        const deficitColor = deficit > 0 ? 'var(--good)' : deficit < 0 ? 'var(--bad)' : 'var(--muted)';
+        
+        return `<tr>
+          <td>${date}</td>
+          <td>${r.strain ?? '—'}</td>
+          <td>${burned || '—'}</td>
+          <td>${consumed || '—'}</td>
+          <td style="font-weight:900; color:${deficitColor}">${deficit ? (deficit > 0 ? '+' : '') + deficit : '—'}</td>
+        </tr>`;
+      }).join('');
 
       const prs = await api('/prs');
       $('#prsList').innerHTML = prs.map(p=>`<div class="alert"><span class="tag">PR</span><div><div style="font-weight:900">${p.exercise_name}</div><div style="color:var(--muted); font-size:12px">${p.weight}×${p.reps} • ${p.date}</div></div></div>`).join('') || '<div style="color:var(--muted)">Aucun PR</div>';
@@ -966,15 +1026,25 @@
     };
 
     $('#addGoalBtn').onclick = async ()=>{
-      const amount = parseInt($('#goalAmount').value);
-      const label = $('#goalLabel').value.trim();
-      if(!amount || amount<=0) return alert('Montant invalide');
-      await api('/financial-goals',{method:'POST',body:JSON.stringify({amount, label: label||null})});
-      $('#goalAmount').value='';
-      $('#goalLabel').value='';
-      await loadSettings();
-      await loadFinances();
-      await loadDashboard();
+      const btn = $('#addGoalBtn');
+      if(btn.disabled) return; // Évite double-clic
+      btn.disabled = true;
+      try {
+        const amount = parseInt($('#goalAmount').value);
+        const label = $('#goalLabel').value.trim();
+        if(!amount || amount<=0) {
+          alert('Montant invalide');
+          return;
+        }
+        await api('/financial-goals',{method:'POST',body:JSON.stringify({amount, label: label||null})});
+        $('#goalAmount').value='';
+        $('#goalLabel').value='';
+        await loadSettings();
+        await loadFinances();
+        await loadDashboard();
+      } finally {
+        btn.disabled = false;
+      }
     };
 
     $('#addHabitBtn').onclick = async ()=>{
