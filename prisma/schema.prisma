@@ -1,0 +1,174 @@
+// Prisma schema (deliverable). LifeCRM uses SQL init in database.js for now.
+// You can switch to Prisma Client later with minimal changes.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_URL")
+}
+
+model Setting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @default(now())
+
+  @@map("settings")
+}
+
+model FinancialGoal {
+  id         Int       @id @default(autoincrement())
+  amount     Int
+  label      String?
+  achieved   Boolean   @default(false)
+  achievedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@map("financial_goals")
+}
+
+model Expense {
+  id        Int      @id @default(autoincrement())
+  amount    Decimal  @db.Decimal(10, 2)
+  category  String
+  note      String?
+  tags      String[]
+  date      DateTime @db.Date
+  createdAt DateTime @default(now())
+
+  @@index([date])
+  @@map("expenses")
+}
+
+model Workout {
+  id          Int        @id @default(autoincrement())
+  date        DateTime   @db.Date
+  durationMin Int?
+  notes       String?
+  createdAt   DateTime   @default(now())
+  exercises   Exercise[]
+
+  @@index([date])
+  @@map("workouts")
+}
+
+model Exercise {
+  id        Int      @id @default(autoincrement())
+  workoutId Int
+  name      String
+  sets      Int
+  reps      Int
+  weight    Decimal? @db.Decimal(6, 2)
+  rpe       Int?
+  notes     String?
+  workout   Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+
+  @@map("exercises")
+}
+
+model Cardio {
+  id          Int      @id @default(autoincrement())
+  date        DateTime @db.Date
+  type        String
+  durationMin Int
+  intensity   String?
+  calories    Int?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@index([date])
+  @@map("cardio")
+}
+
+model PR {
+  id           Int      @id @default(autoincrement())
+  exerciseName String
+  weight       Decimal  @db.Decimal(6, 2)
+  reps         Int
+  date         DateTime @db.Date
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  @@map("prs")
+}
+
+model Nutrition {
+  id        Int      @id @default(autoincrement())
+  date      DateTime @db.Date
+  mealName  String?
+  calories  Int
+  protein   Decimal? @db.Decimal(6, 2)
+  carbs     Decimal? @db.Decimal(6, 2)
+  fat       Decimal? @db.Decimal(6, 2)
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([date])
+  @@map("nutrition")
+}
+
+model Weight {
+  id        Int      @id @default(autoincrement())
+  date      DateTime @unique @db.Date
+  weight    Decimal  @db.Decimal(5, 2)
+  waist     Decimal? @db.Decimal(5, 2)
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([date])
+  @@map("weight")
+}
+
+model WhoopAuth {
+  id           Int      @id @default(autoincrement())
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now())
+
+  @@map("whoop_auth")
+}
+
+model WhoopData {
+  id            Int      @id @default(autoincrement())
+  date          DateTime @unique @db.Date
+  sleepScore    Int?
+  recoveryScore Int?
+  strain        Decimal? @db.Decimal(4, 2)
+  hrv           Int?
+  restingHr     Int?
+  sleepHours    Decimal? @db.Decimal(4, 2)
+  sleepDebt     Int?
+  calories      Int?
+  createdAt     DateTime @default(now())
+
+  @@index([date])
+  @@map("whoop_data")
+}
+
+model Habit {
+  id          Int        @id @default(autoincrement())
+  name        String
+  description String?
+  active      Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  logs        HabitLog[]
+
+  @@map("habits")
+}
+
+model HabitLog {
+  id        Int      @id @default(autoincrement())
+  habitId   Int
+  date      DateTime @db.Date
+  completed Boolean  @default(false)
+  notes     String?
+  habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, date])
+  @@map("habit_logs")
+}

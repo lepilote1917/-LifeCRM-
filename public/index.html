@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LifeCRM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root{
+      --bg:#0B0B0F;
+      --surface:#111217;
+      --surface2:#16181D;
+      --border:rgba(255,255,255,.08);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.6);
+      --muted2:rgba(255,255,255,.42);
+      --accent:#4F7CFF;
+      --accent2:#7C4DFF;
+      --good:#2BE7A7;
+      --warn:#FFD36A;
+      --bad:#FF5C7A;
+      --shadow: 0 18px 80px rgba(0,0,0,.55);
+      --glass: blur(16px) saturate(140%);
+      --r:16px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+      background:
+        radial-gradient(1200px 800px at 20% 0%, rgba(79,124,255,.18), transparent 55%),
+        radial-gradient(900px 700px at 100% 20%, rgba(124,77,255,.14), transparent 60%),
+        var(--bg);
+      color:var(--text);
+      letter-spacing:-.2px;
+    }
+    a{color:inherit}
+
+    .app{display:grid; grid-template-columns: 280px 1fr; min-height:100vh;}
+    .sidebar{
+      position:sticky; top:0; height:100vh;
+      padding:18px 16px;
+      border-right:1px solid var(--border);
+      background: rgba(17,18,23,.55);
+      backdrop-filter: var(--glass);
+      -webkit-backdrop-filter: var(--glass);
+    }
+    .brand{display:flex; align-items:center; gap:12px; padding:10px 10px 18px 10px;}
+    .logo{
+      width:36px; height:36px; border-radius:12px;
+      background: linear-gradient(135deg, rgba(79,124,255,1), rgba(124,77,255,1));
+      box-shadow: 0 10px 30px rgba(79,124,255,.22);
+    }
+    .brand h1{font-size:14px; margin:0; font-weight:800; letter-spacing:-.6px}
+    .brand p{margin:2px 0 0 0; font-size:12px; color:var(--muted)}
+
+    .nav{display:flex; flex-direction:column; gap:6px;}
+    .nav button{
+      width:100%; text-align:left;
+      border:1px solid transparent;
+      background:transparent;
+      color:var(--muted);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      display:flex; align-items:center; gap:10px;
+      font-weight:600;
+      transition: .18s ease;
+    }
+    .nav button:hover{background: rgba(255,255,255,.04); color:var(--text)}
+    .nav button.active{
+      background: rgba(255,255,255,.06);
+      border-color: var(--border);
+      color: var(--text);
+      box-shadow: 0 10px 40px rgba(0,0,0,.35);
+    }
+    .icon{width:18px; opacity:.9}
+
+    .main{padding:22px 22px 28px 22px;}
+    .topbar{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px;}
+    .title{display:flex; flex-direction:column; gap:4px;}
+    .title h2{margin:0; font-size:20px; font-weight:800; letter-spacing:-.7px}
+    .title span{color:var(--muted); font-size:12px}
+
+    .actions{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    .btn{
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+      font-weight:700;
+      transition: .18s ease;
+    }
+    .btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.06)}
+    .btn.primary{border-color: rgba(79,124,255,.35); background: rgba(79,124,255,.12)}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      color:var(--muted);
+      background: rgba(255,255,255,.03);
+      font-size:12px;
+      font-weight:700;
+    }
+    .dot{width:8px; height:8px; border-radius:99px; background: var(--muted2)}
+
+    .grid{display:grid; grid-template-columns: repeat(12, 1fr); gap:14px;}
+    .card{
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      backdrop-filter: var(--glass);
+      -webkit-backdrop-filter: var(--glass);
+      border-radius: var(--r);
+      padding:14px;
+      box-shadow: var(--shadow);
+      min-width:0;
+    }
+    .card h3{margin:0 0 10px 0; font-size:13px; color:var(--muted); font-weight:800; letter-spacing:-.4px}
+    .kpi{display:flex; justify-content:space-between; align-items:baseline; gap:10px}
+    .kpi .val{font-size:28px; font-weight:900; letter-spacing:-1px}
+    .kpi .sub{font-size:12px; color:var(--muted)}
+
+    .alert{display:flex; gap:10px; align-items:center; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background: rgba(255,255,255,.03)}
+    .alert .tag{font-size:11px; font-weight:900; padding:4px 8px; border-radius:999px; border:1px solid var(--border); color:var(--muted)}
+
+    .row{display:flex; gap:10px; flex-wrap:wrap}
+
+    .table{width:100%; border-collapse:collapse; font-size:13px}
+    .table th,.table td{padding:10px 8px; border-bottom:1px solid rgba(255,255,255,.06); text-align:left}
+    .table th{color:var(--muted); font-weight:800}
+
+    .input, select, textarea{
+      width:100%;
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding:10px 10px;
+      border-radius:12px;
+      outline:none;
+      font-family: inherit;
+      font-size:13px;
+    }
+    textarea{min-height:88px; resize:vertical}
+    .form{display:grid; grid-template-columns: repeat(12, 1fr); gap:10px}
+    .col6{grid-column: span 6}
+    .col4{grid-column: span 4}
+    .col3{grid-column: span 3}
+    .col12{grid-column: span 12}
+
+    .section{display:none}
+    .section.active{display:block}
+
+    .chartWrap{height:220px}
+
+    @media (max-width: 980px){
+      .app{grid-template-columns: 1fr}
+      .sidebar{position:relative; height:auto; border-right:none; border-bottom:1px solid var(--border)}
+      .nav{flex-direction:row; flex-wrap:wrap}
+      .nav button{width:auto}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo"></div>
+        <div>
+          <h1>LifeCRM</h1>
+          <p>Personal OS • v1 MVP</p>
+        </div>
+      </div>
+      <div class="nav" id="nav">
+        <button class="active" data-view="dashboard"><span class="icon">◻︎</span> Dashboard</button>
+        <button data-view="finances"><span class="icon">€</span> Finances</button>
+        <button data-view="body"><span class="icon">⟡</span> Corps</button>
+        <button data-view="nutrition"><span class="icon">◎</span> Nutrition</button>
+        <button data-view="weight"><span class="icon">◐</span> Poids</button>
+        <button data-view="settings"><span class="icon">⚙︎</span> Paramètres</button>
+      </div>
+      <div style="margin-top:16px" class="pill">
+        <span class="dot" id="whoopDot"></span>
+        Whoop: <span id="whoopStatus">non connecté</span>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="title">
+          <h2 id="viewTitle">Dashboard</h2>
+          <span id="viewSub">KPIs • alertes • focus</span>
+        </div>
+        <div class="actions">
+          <span class="pill">Range: <span id="rangeLabel">30j</span></span>
+          <button class="btn" id="syncWhoopBtn">Sync Whoop</button>
+          <button class="btn primary" id="connectWhoopBtn">Connect Whoop</button>
+        </div>
+      </div>
+
+      <!-- DASHBOARD -->
+      <section class="section active" id="dashboard">
+        <div class="grid">
+          <div class="card" style="grid-column: span 3">
+            <h3>Trésorerie</h3>
+            <div class="kpi"><div class="val" id="kpiCash">—</div><div class="sub">cash dispo</div></div>
+          </div>
+          <div class="card" style="grid-column: span 3">
+            <h3>Dépenses (7j)</h3>
+            <div class="kpi"><div class="val" id="kpiSpend">—</div><div class="sub">vs budget</div></div>
+          </div>
+          <div class="card" style="grid-column: span 3">
+            <h3>Poids</h3>
+            <div class="kpi"><div class="val" id="kpiWeight">—</div><div class="sub">dernier</div></div>
+          </div>
+          <div class="card" style="grid-column: span 3">
+            <h3>Calories (aujourd'hui)</h3>
+            <div class="kpi"><div class="val" id="kpiCals">—</div><div class="sub">objectif</div></div>
+          </div>
+
+          <div class="card" style="grid-column: span 3">
+            <h3>Whoop Recovery</h3>
+            <div class="kpi"><div class="val" id="kpiRecovery">—</div><div class="sub">score</div></div>
+          </div>
+          <div class="card" style="grid-column: span 3">
+            <h3>Whoop Strain</h3>
+            <div class="kpi"><div class="val" id="kpiStrain">—</div><div class="sub">aujourd'hui</div></div>
+          </div>
+          <div class="card" style="grid-column: span 3">
+            <h3>Entraînements (7j)</h3>
+            <div class="kpi"><div class="val" id="kpiWorkouts">—</div><div class="sub">séances</div></div>
+          </div>
+          <div class="card" style="grid-column: span 3">
+            <h3>Habitudes (aujourd'hui)</h3>
+            <div class="kpi"><div class="val" id="kpiHabits">—</div><div class="sub">complétées</div></div>
+          </div>
+
+          <div class="card" style="grid-column: span 7">
+            <h3>Dépenses (30j) — tendance</h3>
+            <div class="chartWrap"><canvas id="spendChart"></canvas></div>
+          </div>
+          <div class="card" style="grid-column: span 5">
+            <h3>Alertes</h3>
+            <div id="alerts" class="row"></div>
+          </div>
+
+          <div class="card" style="grid-column: span 7">
+            <h3>Poids (90j)</h3>
+            <div class="chartWrap"><canvas id="weightChart"></canvas></div>
+          </div>
+          <div class="card" style="grid-column: span 5">
+            <h3>Quick Add</h3>
+            <div class="row">
+              <button class="btn" data-quick="expense">+ Dépense</button>
+              <button class="btn" data-quick="meal">+ Repas</button>
+              <button class="btn" data-quick="workout">+ Séance</button>
+              <button class="btn" data-quick="weight">+ Poids</button>
+            </div>
+            <div id="quickForm" style="margin-top:10px"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FINANCES -->
+      <section class="section" id="finances">
+        <div class="grid">
+          <div class="card" style="grid-column: span 5">
+            <h3>Nouvelle dépense</h3>
+            <form class="form" id="expenseForm">
+              <div class="col6"><input class="input" name="amount" placeholder="Montant (€)" type="number" step="0.01" required></div>
+              <div class="col6"><input class="input" name="category" placeholder="Catégorie" required></div>
+              <div class="col12"><input class="input" name="note" placeholder="Note (optionnel)"></div>
+              <div class="col12"><input class="input" name="tags" placeholder="Tags (séparés par virgules)"></div>
+              <div class="col6"><input class="input" name="date" type="date" required></div>
+              <div class="col6"><button class="btn primary" type="submit" style="width:100%">Enregistrer</button></div>
+            </form>
+          </div>
+          <div class="card" style="grid-column: span 7">
+            <h3>Dépenses récentes</h3>
+            <table class="table" id="expensesTable">
+              <thead><tr><th>Date</th><th>Catégorie</th><th>Note</th><th>Montant</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div class="card" style="grid-column: span 6">
+            <h3>Budget hebdo</h3>
+            <div class="row" style="align-items:center; justify-content:space-between">
+              <div>
+                <div style="font-weight:900; font-size:22px" id="weeklyBudget">—</div>
+                <div style="color:var(--muted); font-size:12px">Modifie dans Paramètres</div>
+              </div>
+              <div class="pill">Alerte automatique</div>
+            </div>
+          </div>
+          <div class="card" style="grid-column: span 6">
+            <h3>Objectifs par paliers</h3>
+            <div id="goalsList" class="row"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CORPS -->
+      <section class="section" id="body">
+        <div class="grid">
+          <div class="card" style="grid-column: span 6">
+            <h3>Nouvelle séance muscu</h3>
+            <form class="form" id="workoutForm">
+              <div class="col6"><input class="input" name="date" type="date" required></div>
+              <div class="col6"><input class="input" name="duration_min" type="number" placeholder="Durée (min)"></div>
+              <div class="col12"><textarea class="input" name="notes" placeholder="Notes séance"></textarea></div>
+              <div class="col12"><textarea class="input" name="exercises" placeholder='Exercices (une ligne par série):\nEx: Bench Press | 4 sets | 8 reps | 80kg | RPE 8'></textarea></div>
+              <div class="col12"><button class="btn primary" type="submit" style="width:100%">Enregistrer la séance</button></div>
+            </form>
+          </div>
+          <div class="card" style="grid-column: span 6">
+            <h3>Cardio</h3>
+            <form class="form" id="cardioForm">
+              <div class="col4"><input class="input" name="date" type="date" required></div>
+              <div class="col4"><input class="input" name="type" placeholder="Type (run, bike…)" required></div>
+              <div class="col4"><input class="input" name="duration_min" type="number" placeholder="Durée (min)" required></div>
+              <div class="col6"><input class="input" name="intensity" placeholder="Intensité (Z2, tempo…)" ></div>
+              <div class="col6"><input class="input" name="calories" type="number" placeholder="Calories (option)"></div>
+              <div class="col12"><button class="btn primary" type="submit" style="width:100%">Enregistrer cardio</button></div>
+            </form>
+          </div>
+          <div class="card" style="grid-column: span 7">
+            <h3>Whoop data (30j)</h3>
+            <div class="chartWrap"><canvas id="whoopChart"></canvas></div>
+          </div>
+          <div class="card" style="grid-column: span 5">
+            <h3>PRs récents</h3>
+            <div id="prsList"></div>
+            <div style="margin-top:10px" class="row">
+              <button class="btn" id="addPrBtn">+ Ajouter PR</button>
+            </div>
+            <div id="prForm" style="margin-top:10px"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- NUTRITION -->
+      <section class="section" id="nutrition">
+        <div class="grid">
+          <div class="card" style="grid-column: span 5">
+            <h3>Nouveau repas</h3>
+            <form class="form" id="mealForm">
+              <div class="col6"><input class="input" name="date" type="date" required></div>
+              <div class="col6"><input class="input" name="meal_name" placeholder="Repas (option)"></div>
+              <div class="col12"><input class="input" name="calories" type="number" placeholder="Calories" required></div>
+              <div class="col4"><input class="input" name="protein" type="number" step="0.1" placeholder="Protéines (g)"></div>
+              <div class="col4"><input class="input" name="carbs" type="number" step="0.1" placeholder="Glucides (g)"></div>
+              <div class="col4"><input class="input" name="fat" type="number" step="0.1" placeholder="Lipides (g)"></div>
+              <div class="col12"><textarea class="input" name="notes" placeholder="Note"></textarea></div>
+              <div class="col12"><button class="btn primary" type="submit" style="width:100%">Enregistrer</button></div>
+            </form>
+          </div>
+          <div class="card" style="grid-column: span 7">
+            <h3>Totaux & écarts (7j)</h3>
+            <div class="chartWrap"><canvas id="macroChart"></canvas></div>
+          </div>
+          <div class="card" style="grid-column: span 12">
+            <h3>Repas récents</h3>
+            <table class="table" id="mealsTable">
+              <thead><tr><th>Date</th><th>Repas</th><th>Calories</th><th>P</th><th>C</th><th>L</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- POIDS -->
+      <section class="section" id="weight">
+        <div class="grid">
+          <div class="card" style="grid-column: span 5">
+            <h3>Entrée poids</h3>
+            <form class="form" id="weightForm">
+              <div class="col6"><input class="input" name="date" type="date" required></div>
+              <div class="col6"><input class="input" name="weight" type="number" step="0.1" placeholder="Poids" required></div>
+              <div class="col6"><input class="input" name="waist" type="number" step="0.1" placeholder="Tour taille (option)"></div>
+              <div class="col6"><button class="btn primary" type="submit" style="width:100%">Enregistrer</button></div>
+              <div class="col12"><textarea class="input" name="notes" placeholder="Note"></textarea></div>
+            </form>
+          </div>
+          <div class="card" style="grid-column: span 7">
+            <h3>Courbe (90j)</h3>
+            <div class="chartWrap"><canvas id="weightChart2"></canvas></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section class="section" id="settings">
+        <div class="grid">
+          <div class="card" style="grid-column: span 6">
+            <h3>Paramètres clés</h3>
+            <form class="form" id="settingsForm">
+              <div class="col6"><input class="input" name="weekly_budget" type="number" placeholder="Budget hebdo (€)"></div>
+              <div class="col6"><input class="input" name="tdee" type="number" placeholder="TDEE (kcal)"></div>
+              <div class="col4"><input class="input" name="protein_target" type="number" placeholder="Prot (g)"></div>
+              <div class="col4"><input class="input" name="carbs_target" type="number" placeholder="Gluc (g)"></div>
+              <div class="col4"><input class="input" name="fat_target" type="number" placeholder="Lip (g)"></div>
+              <div class="col6"><input class="input" name="weight_goal" type="number" step="0.1" placeholder="Objectif poids"></div>
+              <div class="col6">
+                <select class="input" name="unit_system">
+                  <option value="metric">Métrique (kg)</option>
+                  <option value="imperial">Impérial (lbs)</option>
+                </select>
+              </div>
+              <div class="col12"><button class="btn primary" type="submit" style="width:100%">Sauvegarder</button></div>
+            </form>
+          </div>
+          <div class="card" style="grid-column: span 6">
+            <h3>Whoop</h3>
+            <p style="margin:0 0 10px 0; color:var(--muted); font-size:13px">Connexion OAuth + sync metrics (Sleep/Recovery/Strain/HRV). Mode mock si non connecté.</p>
+            <div class="row">
+              <button class="btn primary" id="connectWhoopBtn2">Connect Whoop</button>
+              <button class="btn" id="syncWhoopBtn2">Sync (30j)</button>
+            </div>
+            <div style="margin-top:10px" class="pill"><span class="dot" id="whoopDot2"></span> <span id="whoopStatus2">—</span></div>
+            <div style="margin-top:10px; color:var(--muted); font-size:12px">
+              Env requis: WHOOP_CLIENT_ID, WHOOP_CLIENT_SECRET, WHOOP_REDIRECT_URI
+            </div>
+          </div>
+
+          <div class="card" style="grid-column: span 12">
+            <h3>Habitudes (MVP bonus)</h3>
+            <div class="row" style="margin-bottom:10px">
+              <input class="input" id="habitName" placeholder="Nouvelle habitude (ex: 10k pas)" style="max-width:360px">
+              <button class="btn primary" id="addHabitBtn">Ajouter</button>
+            </div>
+            <div id="habitsToday"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const API = '/api';
+    const $ = (s) => document.querySelector(s);
+    const $$ = (s) => Array.from(document.querySelectorAll(s));
+
+    const state = { settings: {}, whoopConnected: false, charts: {} };
+
+    function money(v){
+      const n = Number(v||0);
+      return n.toLocaleString('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0});
+    }
+
+    function isoToday(){return new Date().toISOString().slice(0,10)}
+
+    function setView(view){
+      $$('.nav button').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
+      $$('.section').forEach(s=>s.classList.toggle('active', s.id===view));
+      const titles = {
+        dashboard:['Dashboard','KPIs • alertes • focus'],
+        finances:['Finances','Dépenses • budgets • objectifs'],
+        body:['Corps','Training • Whoop • PRs'],
+        nutrition:['Nutrition','Calories • macros • objectifs'],
+        weight:['Poids','Courbe • tendance • objectif'],
+        settings:['Paramètres','Config • Whoop • habitudes']
+      };
+      $('#viewTitle').textContent = titles[view][0];
+      $('#viewSub').textContent = titles[view][1];
+    }
+
+    async function api(path, opts){
+      const res = await fetch(`${API}${path}`, { headers:{'Content-Type':'application/json'}, ...opts});
+      if(!res.ok) throw new Error(await res.text());
+      return res.headers.get('content-type')?.includes('application/json') ? res.json() : res.text();
+    }
+
+    function chartLine(canvasId, labels, datasets){
+      const ctx = document.getElementById(canvasId);
+      if(!ctx) return;
+      const existing = state.charts[canvasId];
+      if(existing) existing.destroy();
+      state.charts[canvasId] = new Chart(ctx, {
+        type:'line',
+        data:{ labels, datasets },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{ legend:{display:false} },
+          scales:{
+            x:{ ticks:{color:'rgba(255,255,255,.45)'}, grid:{color:'rgba(255,255,255,.05)'} },
+            y:{ ticks:{color:'rgba(255,255,255,.45)'}, grid:{color:'rgba(255,255,255,.05)'} }
+          }
+        }
+      });
+    }
+
+    async function loadWhoopStatus(){
+      const s = await api('/whoop/status');
+      state.whoopConnected = !!s.connected;
+      const text = s.connected ? 'connecté' : 'non connecté';
+      $('#whoopStatus').textContent = text;
+      $('#whoopStatus2').textContent = text;
+      const color = s.connected ? 'var(--good)' : 'var(--muted2)';
+      $('#whoopDot').style.background = color;
+      $('#whoopDot2').style.background = color;
+    }
+
+    async function connectWhoop(){
+      const r = await api('/whoop/connect');
+      window.location.href = r.url;
+    }
+
+    async function syncWhoop(days=30){
+      try{
+        await api('/whoop/sync',{method:'POST',body:JSON.stringify({days})});
+        await loadDashboard();
+        await loadBody();
+      }catch(e){
+        alert('Sync Whoop error: '+e.message);
+      }
+    }
+
+    async function loadDashboard(){
+      const { stats, alerts, settings } = await api('/dashboard');
+      state.settings = settings;
+
+      // KPIs
+      const cash = Number(settings.cash_available || 0);
+      $('#kpiCash').textContent = money(cash);
+      $('#kpiSpend').textContent = money(stats.expenses_week);
+      $('#kpiWeight').textContent = stats.weight_current ? `${stats.weight_current} kg` : '—';
+      $('#kpiCals').textContent = stats.calories_today ? `${stats.calories_today} kcal` : '—';
+      $('#kpiRecovery').textContent = stats.whoop_recovery ?? '—';
+      $('#kpiStrain').textContent = stats.whoop_strain ?? '—';
+      $('#kpiWorkouts').textContent = stats.workouts_week ?? '—';
+
+      // habits today
+      const logs = await api(`/habits/logs?date=${isoToday()}`);
+      const done = logs.filter(l=>l.completed).length;
+      $('#kpiHabits').textContent = `${done}/${logs.length}`;
+
+      // Alerts
+      const wrap = $('#alerts');
+      wrap.innerHTML = '';
+      (alerts.length ? alerts : ['Aucune alerte']).forEach(a=>{
+        const el = document.createElement('div');
+        el.className='alert';
+        el.innerHTML = `<span class="tag">ALERT</span><div style="font-weight:700">${a}</div>`;
+        wrap.appendChild(el);
+      });
+
+      // Spend chart (30d)
+      const expenses = await api(`/expenses?start=${new Date(Date.now()-30*864e5).toISOString().slice(0,10)}&end=${isoToday()}`);
+      const byDay = new Map();
+      expenses.forEach(e=>{ byDay.set(e.date, (byDay.get(e.date)||0) + Number(e.amount)); });
+      const labels = Array.from({length:30},(_,i)=>{
+        const d = new Date(Date.now()-(29-i)*864e5);
+        return d.toISOString().slice(5,10);
+      });
+      const values = Array.from({length:30},(_,i)=>{
+        const d = new Date(Date.now()-(29-i)*864e5).toISOString().slice(0,10);
+        return byDay.get(d)||0;
+      });
+      chartLine('spendChart', labels, [{data:values, borderColor:'rgba(79,124,255,.95)', tension:.35, pointRadius:0}]);
+
+      // Weight chart (90d)
+      const weights = await api(`/weight?start=${new Date(Date.now()-90*864e5).toISOString().slice(0,10)}&end=${isoToday()}`);
+      const wLabels = weights.slice().reverse().map(r=>r.date.slice(5,10));
+      const wVals = weights.slice().reverse().map(r=>Number(r.weight));
+      chartLine('weightChart', wLabels, [{data:wVals, borderColor:'rgba(255,255,255,.85)', tension:.35, pointRadius:0}]);
+      chartLine('weightChart2', wLabels, [{data:wVals, borderColor:'rgba(255,255,255,.85)', tension:.35, pointRadius:0}]);
+
+      // Quick add
+      $$('[data-quick]').forEach(b=>b.onclick=()=>renderQuick(b.dataset.quick));
+    }
+
+    function renderQuick(type){
+      const q = $('#quickForm');
+      const today = isoToday();
+      if(type==='expense'){
+        q.innerHTML = `
+          <form class="form" id="qExpense">
+            <div class="col6"><input class="input" name="amount" type="number" step="0.01" placeholder="Montant" required></div>
+            <div class="col6"><input class="input" name="category" placeholder="Catégorie" required></div>
+            <div class="col12"><input class="input" name="note" placeholder="Note"></div>
+            <div class="col6"><input class="input" name="date" type="date" value="${today}" required></div>
+            <div class="col6"><button class="btn primary" type="submit" style="width:100%">Ajouter</button></div>
+          </form>`;
+        $('#qExpense').onsubmit = async (e)=>{
+          e.preventDefault();
+          const f = new FormData(e.target);
+          await api('/expenses',{method:'POST',body:JSON.stringify(Object.fromEntries(f.entries()))});
+          q.innerHTML='';
+          await loadDashboard();
+          await loadFinances();
+        };
+      }
+      if(type==='meal'){
+        q.innerHTML = `
+          <form class="form" id="qMeal">
+            <div class="col6"><input class="input" name="date" type="date" value="${today}" required></div>
+            <div class="col6"><input class="input" name="calories" type="number" placeholder="Calories" required></div>
+            <div class="col4"><input class="input" name="protein" type="number" step="0.1" placeholder="Prot (g)"></div>
+            <div class="col4"><input class="input" name="carbs" type="number" step="0.1" placeholder="Gluc (g)"></div>
+            <div class="col4"><input class="input" name="fat" type="number" step="0.1" placeholder="Lip (g)"></div>
+            <div class="col12"><button class="btn primary" type="submit" style="width:100%">Ajouter</button></div>
+          </form>`;
+        $('#qMeal').onsubmit = async (e)=>{
+          e.preventDefault();
+          const f = new FormData(e.target);
+          await api('/nutrition',{method:'POST',body:JSON.stringify(Object.fromEntries(f.entries()))});
+          q.innerHTML='';
+          await loadDashboard();
+          await loadNutrition();
+        };
+      }
+      if(type==='workout'){
+        q.innerHTML = `
+          <form class="form" id="qWorkout">
+            <div class="col6"><input class="input" name="date" type="date" value="${today}" required></div>
+            <div class="col6"><input class="input" name="duration_min" type="number" placeholder="Durée (min)"></div>
+            <div class="col12"><textarea class="input" name="exercises" placeholder='Ex: Squat | 5 sets | 5 reps | 120kg | RPE 8'></textarea></div>
+            <div class="col12"><button class="btn primary" type="submit" style="width:100%">Ajouter</button></div>
+          </form>`;
+        $('#qWorkout').onsubmit = async (e)=>{
+          e.preventDefault();
+          const f = new FormData(e.target);
+          const raw = Object.fromEntries(f.entries());
+          const exercises = parseExercises(raw.exercises);
+          await api('/workouts',{method:'POST',body:JSON.stringify({date:raw.date,duration_min:raw.duration_min||null, notes:null, exercises})});
+          q.innerHTML='';
+          await loadDashboard();
+          await loadBody();
+        };
+      }
+      if(type==='weight'){
+        q.innerHTML = `
+          <form class="form" id="qWeight">
+            <div class="col6"><input class="input" name="date" type="date" value="${today}" required></div>
+            <div class="col6"><input class="input" name="weight" type="number" step="0.1" placeholder="Poids" required></div>
+            <div class="col12"><button class="btn primary" type="submit" style="width:100%">Ajouter</button></div>
+          </form>`;
+        $('#qWeight').onsubmit = async (e)=>{
+          e.preventDefault();
+          const f = new FormData(e.target);
+          await api('/weight',{method:'POST',body:JSON.stringify(Object.fromEntries(f.entries()))});
+          q.innerHTML='';
+          await loadDashboard();
+          await loadWeight();
+        };
+      }
+    }
+
+    function parseExercises(text){
+      if(!text) return [];
+      const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
+      return lines.map(l=>{
+        const parts = l.split('|').map(x=>x.trim());
+        const name = parts[0] || 'Exercise';
+        const sets = parseInt((parts[1]||'').match(/\d+/)?.[0]||'3');
+        const reps = parseInt((parts[2]||'').match(/\d+/)?.[0]||'8');
+        const weight = parseFloat((parts[3]||'').match(/[\d.]+/)?.[0]||'0') || null;
+        const rpe = parseInt((parts[4]||'').match(/\d+/)?.[0]||'') || null;
+        return { name, sets, reps, weight, rpe };
+      });
+    }
+
+    async function loadFinances(){
+      const settings = await api('/settings');
+      state.settings = settings;
+      $('#weeklyBudget').textContent = money(Number(settings.weekly_budget||0));
+
+      const expenses = await api(`/expenses?start=${new Date(Date.now()-30*864e5).toISOString().slice(0,10)}&end=${isoToday()}`);
+      const tbody = $('#expensesTable tbody');
+      tbody.innerHTML = expenses.slice(0,12).map(e=>`<tr><td>${e.date}</td><td>${e.category}</td><td>${e.note||''}</td><td style="font-weight:900">${money(e.amount)}</td></tr>`).join('');
+
+      const goals = await api('/financial-goals');
+      const wrap = $('#goalsList');
+      wrap.innerHTML = '';
+      goals.forEach(g=>{
+        const b = document.createElement('button');
+        b.className = 'btn';
+        b.textContent = `${money(g.amount)}${g.achieved?' ✓':''}`;
+        b.onclick = async ()=>{ if(!g.achieved) { await api(`/financial-goals/${g.id}/achieve`,{method:'POST'}); await loadFinances(); } };
+        wrap.appendChild(b);
+      });
+
+      // expense form default
+      $('#expenseForm [name=date]').value = isoToday();
+    }
+
+    async function loadBody(){
+      // whoop chart
+      const whoop = await api(`/whoop/data?start=${new Date(Date.now()-30*864e5).toISOString().slice(0,10)}&end=${isoToday()}`);
+      const labels = whoop.slice().reverse().map(r=>r.date.slice(5,10));
+      const recovery = whoop.slice().reverse().map(r=>r.recovery_score ?? null);
+      const strain = whoop.slice().reverse().map(r=>r.strain ?? null);
+      chartLine('whoopChart', labels, [
+        { data: recovery, borderColor:'rgba(79,124,255,.95)', tension:.35, pointRadius:0 },
+        { data: strain, borderColor:'rgba(43,231,167,.75)', tension:.35, pointRadius:0 }
+      ]);
+
+      const prs = await api('/prs');
+      $('#prsList').innerHTML = prs.map(p=>`<div class="alert"><span class="tag">PR</span><div><div style="font-weight:900">${p.exercise_name}</div><div style="color:var(--muted); font-size:12px">${p.weight}×${p.reps} • ${p.date}</div></div></div>`).join('') || '<div style="color:var(--muted)">Aucun PR</div>';
+
+      $('#workoutForm [name=date]').value = isoToday();
+      $('#cardioForm [name=date]').value = isoToday();
+    }
+
+    async function loadNutrition(){
+      const meals = await api(`/nutrition?start=${new Date(Date.now()-14*864e5).toISOString().slice(0,10)}&end=${isoToday()}`);
+      const tbody = $('#mealsTable tbody');
+      tbody.innerHTML = meals.slice(0,12).map(m=>`<tr><td>${m.date}</td><td>${m.meal_name||''}</td><td style="font-weight:900">${m.calories}</td><td>${m.protein||''}</td><td>${m.carbs||''}</td><td>${m.fat||''}</td></tr>`).join('');
+
+      // Macro chart (7 days totals)
+      const start = new Date(Date.now()-7*864e5).toISOString().slice(0,10);
+      const week = await api(`/nutrition?start=${start}&end=${isoToday()}`);
+      const by = new Map();
+      week.forEach(r=>{
+        const k=r.date;
+        const cur = by.get(k)||{cal:0,p:0,c:0,f:0};
+        cur.cal += Number(r.calories||0);
+        cur.p += Number(r.protein||0);
+        cur.c += Number(r.carbs||0);
+        cur.f += Number(r.fat||0);
+        by.set(k,cur);
+      });
+      const labels = Array.from({length:7},(_,i)=>{
+        const d = new Date(Date.now()-(6-i)*864e5).toISOString().slice(5,10);
+        return d;
+      });
+      const vals = Array.from({length:7},(_,i)=>{
+        const d = new Date(Date.now()-(6-i)*864e5).toISOString().slice(0,10);
+        return by.get(d)?.cal||0;
+      });
+      chartLine('macroChart', labels, [{data:vals, borderColor:'rgba(255,255,255,.85)', tension:.35, pointRadius:0}]);
+
+      $('#mealForm [name=date]').value = isoToday();
+    }
+
+    async function loadWeight(){
+      $('#weightForm [name=date]').value = isoToday();
+      // chart is in dashboard loader already
+    }
+
+    async function loadSettings(){
+      const s = await api('/settings');
+      state.settings = s;
+      const form = $('#settingsForm');
+      ['weekly_budget','tdee','protein_target','carbs_target','fat_target','weight_goal','unit_system'].forEach(k=>{
+        if(form[k]) form[k].value = s[k] ?? '';
+      });
+
+      // habits today
+      const logs = await api(`/habits/logs?date=${isoToday()}`);
+      renderHabits(logs);
+    }
+
+    function renderHabits(logs){
+      const wrap = $('#habitsToday');
+      if(!logs.length) { wrap.innerHTML = `<div style="color:var(--muted)">Ajoute une habitude ci-dessus.</div>`; return; }
+      wrap.innerHTML = logs.map(l=>`
+        <div class="alert" style="justify-content:space-between">
+          <div>
+            <div style="font-weight:900">${l.name}</div>
+            <div style="color:var(--muted); font-size:12px">${l.description||''}</div>
+          </div>
+          <label class="pill" style="cursor:pointer">
+            <input type="checkbox" ${l.completed?'checked':''} data-hid="${l.habit_id}" style="transform:scale(1.1)" />
+            Done
+          </label>
+        </div>`).join('');
+
+      wrap.querySelectorAll('input[type=checkbox]').forEach(ch=>{
+        ch.onchange = async ()=>{
+          await api('/habits/logs',{method:'POST',body:JSON.stringify({habit_id:Number(ch.dataset.hid), date: isoToday(), completed: ch.checked})});
+          await loadDashboard();
+        };
+      });
+    }
+
+    // Forms
+    $('#expenseForm').onsubmit = async (e)=>{
+      e.preventDefault();
+      const f = new FormData(e.target);
+      const obj = Object.fromEntries(f.entries());
+      obj.tags = obj.tags ? obj.tags.split(',').map(s=>s.trim()).filter(Boolean) : null;
+      await api('/expenses',{method:'POST',body:JSON.stringify(obj)});
+      e.target.reset();
+      $('#expenseForm [name=date]').value = isoToday();
+      await loadDashboard();
+      await loadFinances();
+    };
+
+    $('#workoutForm').onsubmit = async (e)=>{
+      e.preventDefault();
+      const f = new FormData(e.target);
+      const obj = Object.fromEntries(f.entries());
+      obj.exercises = parseExercises(obj.exercises);
+      await api('/workouts',{method:'POST',body:JSON.stringify(obj)});
+      e.target.reset();
+      $('#workoutForm [name=date]').value = isoToday();
+      await loadDashboard();
+      await loadBody();
+    };
+
+    $('#cardioForm').onsubmit = async (e)=>{
+      e.preventDefault();
+      const f = new FormData(e.target);
+      await api('/cardio',{method:'POST',body:JSON.stringify(Object.fromEntries(f.entries()))});
+      e.target.reset();
+      $('#cardioForm [name=date]').value = isoToday();
+      await loadDashboard();
+    };
+
+    $('#mealForm').onsubmit = async (e)=>{
+      e.preventDefault();
+      const f = new FormData(e.target);
+      await api('/nutrition',{method:'POST',body:JSON.stringify(Object.fromEntries(f.entries()))});
+      e.target.reset();
+      $('#mealForm [name=date]').value = isoToday();
+      await loadDashboard();
+      await loadNutrition();
+    };
+
+    $('#weightForm').onsubmit = async (e)=>{
+      e.preventDefault();
+      const f = new FormData(e.target);
+      await api('/weight',{method:'POST',body:JSON.stringify(Object.fromEntries(f.entries()))});
+      e.target.reset();
+      $('#weightForm [name=date]').value = isoToday();
+      await loadDashboard();
+    };
+
+    $('#settingsForm').onsubmit = async (e)=>{
+      e.preventDefault();
+      const f = new FormData(e.target);
+      for(const [k,v] of f.entries()) await api('/settings',{method:'POST',body:JSON.stringify({key:k,value:v})});
+      alert('Settings saved');
+      await loadDashboard();
+    };
+
+    $('#addHabitBtn').onclick = async ()=>{
+      const name = $('#habitName').value.trim();
+      if(!name) return;
+      await api('/habits',{method:'POST',body:JSON.stringify({name})});
+      $('#habitName').value='';
+      const logs = await api(`/habits/logs?date=${isoToday()}`);
+      renderHabits(logs);
+      await loadDashboard();
+    };
+
+    $('#addPrBtn').onclick = ()=>{
+      $('#prForm').innerHTML = `
+        <form class="form" id="prFormInner">
+          <div class="col6"><input class="input" name="exercise_name" placeholder="Exercice" required></div>
+          <div class="col3"><input class="input" name="weight" type="number" step="0.1" placeholder="Charge" required></div>
+          <div class="col3"><input class="input" name="reps" type="number" placeholder="Reps" required></div>
+          <div class="col6"><input class="input" name="date" type="date" value="${isoToday()}" required></div>
+          <div class="col6"><button class="btn primary" type="submit" style="width:100%">Ajouter PR</button></div>
+        </form>`;
+      $('#prFormInner').onsubmit = async (e)=>{
+        e.preventDefault();
+        const f = new FormData(e.target);
+        await api('/prs',{method:'POST',body:JSON.stringify(Object.fromEntries(f.entries()))});
+        $('#prForm').innerHTML='';
+        await loadBody();
+      };
+    };
+
+    // Whoop buttons
+    $('#connectWhoopBtn').onclick = connectWhoop;
+    $('#connectWhoopBtn2').onclick = connectWhoop;
+    $('#syncWhoopBtn').onclick = ()=>syncWhoop(30);
+    $('#syncWhoopBtn2').onclick = ()=>syncWhoop(30);
+
+    // Nav
+    $('#nav').addEventListener('click', async (e)=>{
+      const b = e.target.closest('button[data-view]');
+      if(!b) return;
+      const view = b.dataset.view;
+      setView(view);
+      if(view==='dashboard') await loadDashboard();
+      if(view==='finances') await loadFinances();
+      if(view==='body') await loadBody();
+      if(view==='nutrition') await loadNutrition();
+      if(view==='weight') await loadWeight();
+      if(view==='settings') await loadSettings();
+    });
+
+    // Init
+    (async ()=>{
+      await loadWhoopStatus();
+      await loadDashboard();
+    })();
+  </script>
+</body>
+</html>
