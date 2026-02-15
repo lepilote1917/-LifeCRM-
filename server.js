@@ -41,16 +41,33 @@ app.post('/api/auth/logout', (req, res) => {
   res.json({ ok: true });
 });
 
-// Middleware d'authentification (protège tout sauf login)
+// Servir les fichiers statiques AVANT l'auth
+app.use(express.static('public'));
+
+// Middleware d'authentification (protège les routes sauf login et auth API)
 app.use((req, res, next) => {
   // Exclure login.html et API auth
   if (req.path === '/login.html' || req.path.startsWith('/api/auth/')) {
     return next();
   }
-  requireAuth(req, res, next);
-});
+  
+  // Vérifier le cookie
+  const authCookie = req.headers.cookie?.split(';')
+    .find(c => c.trim().startsWith('lifecrm_auth='))
+    ?.split('=')[1];
 
-app.use(express.static('public'));
+  if (authCookie === SESSION_SECRET) {
+    return next();
+  }
+
+  // Non authentifié
+  if (req.path.startsWith('/api/')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  // Rediriger HTML vers login
+  res.redirect('/login.html');
+});
 
 // Init schema
 db.initSchema().catch((e) => console.error('Init error:', e));
