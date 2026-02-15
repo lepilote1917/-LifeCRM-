@@ -452,6 +452,7 @@
           <div class="card" style="grid-column: span 6">
             <h3>Paramètres clés</h3>
             <form class="form" id="settingsForm">
+              <div class="col12"><input class="input" name="cash_available" type="number" placeholder="💰 Argent disponible (€)" style="font-weight:700; font-size:16px"></div>
               <div class="col6"><input class="input" name="weekly_budget" type="number" placeholder="Budget hebdo (€)"></div>
               <div class="col6"><input class="input" name="tdee" type="number" placeholder="TDEE (kcal)"></div>
               <div class="col4"><input class="input" name="protein_target" type="number" placeholder="Prot (g)"></div>
@@ -900,7 +901,7 @@
       const s = await api('/settings');
       state.settings = s;
       const form = $('#settingsForm');
-      ['weekly_budget','tdee','protein_target','carbs_target','fat_target','weight_goal','unit_system'].forEach(k=>{
+      ['cash_available','weekly_budget','tdee','protein_target','carbs_target','fat_target','weight_goal','unit_system'].forEach(k=>{
         if(form[k]) form[k].value = s[k] ?? '';
       });
 
