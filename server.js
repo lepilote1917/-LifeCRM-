@@ -155,7 +155,7 @@ app.delete('/api/financial-goals/:id', async (req, res) => {
   }
 });
 
-// Admin: cleanup duplicates
+// Admin: cleanup duplicates (garde 1 seul objectif par montant)
 app.post('/api/admin/cleanup-goals', async (req, res) => {
   try {
     const result = await db.pool.query(`
@@ -163,7 +163,7 @@ app.post('/api/admin/cleanup-goals', async (req, res) => {
       WHERE id NOT IN (
         SELECT MAX(id)
         FROM financial_goals
-        GROUP BY amount, COALESCE(label, '')
+        GROUP BY amount
       )
     `);
     res.json({ ok: true, deleted: result.rowCount });
