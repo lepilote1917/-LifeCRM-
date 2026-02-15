@@ -338,29 +338,23 @@
           <div class="card" style="grid-column: span 12">
             <h3>Whoop Metrics (dernières 24h)</h3>
             <div class="grid">
-              <div class="card" style="grid-column: span 2; padding:10px">
-                <h3 style="margin:0 0 6px 0; font-size:11px">Recovery</h3>
+              <div class="card" style="grid-column: span 3; padding:10px">
+                <h3 style="margin:0 0 6px 0; font-size:11px">💪 Strain</h3>
+                <div class="kpi"><div class="val" style="font-size:24px; font-weight:800" id="whoopStrainToday">—</div></div>
+              </div>
+              <div class="card" style="grid-column: span 3; padding:10px">
+                <h3 style="margin:0 0 6px 0; font-size:11px">🔥 Calories</h3>
+                <div class="kpi"><div class="val" style="font-size:24px; font-weight:800" id="whoopCaloriesToday">—</div></div>
+              </div>
+              <div class="card" style="grid-column: span 3; padding:10px; opacity:0.4">
+                <h3 style="margin:0 0 6px 0; font-size:11px">💚 Recovery</h3>
                 <div class="kpi"><div class="val" style="font-size:20px" id="whoopRecoveryToday">—</div></div>
+                <span style="font-size:9px; color:var(--muted2)">API indisponible</span>
               </div>
-              <div class="card" style="grid-column: span 2; padding:10px">
-                <h3 style="margin:0 0 6px 0; font-size:11px">Strain</h3>
-                <div class="kpi"><div class="val" style="font-size:20px" id="whoopStrainToday">—</div></div>
-              </div>
-              <div class="card" style="grid-column: span 2; padding:10px">
-                <h3 style="margin:0 0 6px 0; font-size:11px">HRV (ms)</h3>
-                <div class="kpi"><div class="val" style="font-size:20px" id="whoopHRV">—</div></div>
-              </div>
-              <div class="card" style="grid-column: span 2; padding:10px">
-                <h3 style="margin:0 0 6px 0; font-size:11px">Resting HR</h3>
-                <div class="kpi"><div class="val" style="font-size:20px" id="whoopHR">—</div></div>
-              </div>
-              <div class="card" style="grid-column: span 2; padding:10px">
-                <h3 style="margin:0 0 6px 0; font-size:11px">Sleep (h)</h3>
+              <div class="card" style="grid-column: span 3; padding:10px; opacity:0.4">
+                <h3 style="margin:0 0 6px 0; font-size:11px">😴 Sleep (h)</h3>
                 <div class="kpi"><div class="val" style="font-size:20px" id="whoopSleep">—</div></div>
-              </div>
-              <div class="card" style="grid-column: span 2; padding:10px">
-                <h3 style="margin:0 0 6px 0; font-size:11px">Sleep Score</h3>
-                <div class="kpi"><div class="val" style="font-size:20px" id="whoopSleepScore">—</div></div>
+                <span style="font-size:9px; color:var(--muted2)">API indisponible</span>
               </div>
             </div>
           </div>
@@ -785,23 +779,19 @@
         const [y,m,d] = r.date.split('-');
         return `${d}/${m}`;
       });
-      const recovery = whoop.slice().reverse().map(r=>r.recovery_score ?? null);
-      const strain = whoop.slice().reverse().map(r=>r.strain ?? null);
-      const hrv = whoop.slice().reverse().map(r=>r.hrv ?? null);
+      const strain = whoop.slice().reverse().map(r=>r.strain ? parseFloat(r.strain) : null);
+      const calories = whoop.slice().reverse().map(r=>r.calories ?? null);
       chartLine('whoopChart', labels, [
-        { label:'Recovery', data: recovery, borderColor:'rgba(79,124,255,.95)', tension:.35, pointRadius:0 },
-        { label:'Strain', data: strain, borderColor:'rgba(43,231,167,.75)', tension:.35, pointRadius:0 },
-        { label:'HRV', data: hrv, borderColor:'rgba(255,211,106,.75)', tension:.35, pointRadius:0, yAxisID:'y2' }
+        { label:'💪 Strain', data: strain, borderColor:'rgba(43,231,167,.95)', tension:.35, pointRadius:2, borderWidth:3 },
+        { label:'🔥 Calories', data: calories, borderColor:'rgba(255,92,122,.85)', tension:.35, pointRadius:2, borderWidth:2, yAxisID:'y2' }
       ]);
 
       // whoop metrics today
       const today = whoop.find(r => r.date === isoToday()) || whoop[0] || {};
       $('#whoopRecoveryToday').textContent = today.recovery_score ?? '—';
       $('#whoopStrainToday').textContent = today.strain ?? '—';
-      $('#whoopHRV').textContent = today.hrv ?? '—';
-      $('#whoopHR').textContent = today.resting_hr ?? '—';
+      $('#whoopCaloriesToday').textContent = today.calories ? `${today.calories} kcal` : '—';
       $('#whoopSleep').textContent = today.sleep_hours ? today.sleep_hours.toFixed(1) : '—';
-      $('#whoopSleepScore').textContent = today.sleep_score ?? '—';
 
       const prs = await api('/prs');
       $('#prsList').innerHTML = prs.map(p=>`<div class="alert"><span class="tag">PR</span><div><div style="font-weight:900">${p.exercise_name}</div><div style="color:var(--muted); font-size:12px">${p.weight}×${p.reps} • ${p.date}</div></div></div>`).join('') || '<div style="color:var(--muted)">Aucun PR</div>';

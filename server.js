@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -342,7 +344,7 @@ app.get('/api/whoop/connect', async (req, res) => {
     url.searchParams.set('client_id', process.env.WHOOP_CLIENT_ID);
     url.searchParams.set('redirect_uri', process.env.WHOOP_REDIRECT_URI);
     url.searchParams.set('response_type', 'code');
-    url.searchParams.set('scope', 'read:recovery read:sleep read:workout read:cycle');
+    url.searchParams.set('scope', 'read:profile read:recovery read:cycles read:sleep read:workout read:body_measurement offline');
     url.searchParams.set('state', state);
 
     res.json({ url: url.toString() });
@@ -421,12 +423,16 @@ app.post('/api/whoop/sync', async (req, res) => {
     // Fetch cycles (recovery/strain) and sleep. Endpoints may vary; keep robust.
     const headers = { Authorization: `Bearer ${auth.access_token}` };
 
-    const end = isoDate();
-    const start = addDays(end, -Math.min(Math.max(days, 1), 365));
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - Math.min(Math.max(days, 1), 365));
+
+    const end = endDate.toISOString();
+    const start = startDate.toISOString();
 
     // Try a few common endpoints; if Whoop changes, return helpful error.
-    const cyclesUrl = `${WHOOP_API_BASE}/cycle?start=${start}&end=${end}`;
-    const sleepUrl = `${WHOOP_API_BASE}/sleep?start=${start}&end=${end}`;
+    const cyclesUrl = `${WHOOP_API_BASE}/cycle?start=${start}&end=${end}&limit=25`;
+    const sleepUrl = `${WHOOP_API_BASE}/sleep?start=${start}&end=${end}&limit=25`;
 
     const [cyclesRes, sleepRes] = await Promise.all([
       axios.get(cyclesUrl, { headers }).catch((e) => ({ error: e })),
