@@ -1037,12 +1037,17 @@
           alert('Montant invalide');
           return;
         }
-        await api('/financial-goals',{method:'POST',body:JSON.stringify({amount, label: label||null})});
-        $('#goalAmount').value='';
-        $('#goalLabel').value='';
-        await loadSettings();
-        await loadFinances();
-        await loadDashboard();
+        try {
+          await api('/financial-goals',{method:'POST',body:JSON.stringify({amount, label: label||null})});
+          $('#goalAmount').value='';
+          $('#goalLabel').value='';
+          await loadSettings();
+          await loadFinances();
+          await loadDashboard();
+        } catch (err) {
+          alert(err.message || 'Erreur lors de l\'ajout de l\'objectif');
+          throw err; // Re-throw pour le finally
+        }
       } finally {
         btn.disabled = false;
       }
