@@ -42,7 +42,7 @@ app.post('/api/auth/logout', (req, res) => {
 });
 
 // Servir les fichiers statiques AVANT l'auth
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Middleware d'authentification (protège les routes sauf login et auth API)
 app.use((req, res, next) => {
