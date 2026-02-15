@@ -155,6 +155,23 @@ app.delete('/api/financial-goals/:id', async (req, res) => {
   }
 });
 
+// Admin: cleanup duplicates
+app.post('/api/admin/cleanup-goals', async (req, res) => {
+  try {
+    const result = await db.pool.query(`
+      DELETE FROM financial_goals
+      WHERE id NOT IN (
+        SELECT MAX(id)
+        FROM financial_goals
+        GROUP BY amount, COALESCE(label, '')
+      )
+    `);
+    res.json({ ok: true, deleted: result.rowCount });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ---------- Corps / Training ----------
 app.get('/api/workouts', async (req, res) => {
   try {
