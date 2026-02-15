@@ -250,6 +250,11 @@
             <div id="alerts" class="row"></div>
           </div>
 
+          <div class="card" style="grid-column: span 12">
+            <h3>Objectifs financiers</h3>
+            <div id="goalsProgress" class="row"></div>
+          </div>
+
           <div class="card" style="grid-column: span 7">
             <h3>Poids (90j)</h3>
             <div class="chartWrap"><canvas id="weightChart"></canvas></div>
@@ -330,8 +335,37 @@
               <div class="col12"><button class="btn primary" type="submit" style="width:100%">Enregistrer cardio</button></div>
             </form>
           </div>
-          <div class="card" style="grid-column: span 7">
-            <h3>Whoop data (30j)</h3>
+          <div class="card" style="grid-column: span 12">
+            <h3>Whoop Metrics (dernières 24h)</h3>
+            <div class="grid">
+              <div class="card" style="grid-column: span 2; padding:10px">
+                <h3 style="margin:0 0 6px 0; font-size:11px">Recovery</h3>
+                <div class="kpi"><div class="val" style="font-size:20px" id="whoopRecoveryToday">—</div></div>
+              </div>
+              <div class="card" style="grid-column: span 2; padding:10px">
+                <h3 style="margin:0 0 6px 0; font-size:11px">Strain</h3>
+                <div class="kpi"><div class="val" style="font-size:20px" id="whoopStrainToday">—</div></div>
+              </div>
+              <div class="card" style="grid-column: span 2; padding:10px">
+                <h3 style="margin:0 0 6px 0; font-size:11px">HRV (ms)</h3>
+                <div class="kpi"><div class="val" style="font-size:20px" id="whoopHRV">—</div></div>
+              </div>
+              <div class="card" style="grid-column: span 2; padding:10px">
+                <h3 style="margin:0 0 6px 0; font-size:11px">Resting HR</h3>
+                <div class="kpi"><div class="val" style="font-size:20px" id="whoopHR">—</div></div>
+              </div>
+              <div class="card" style="grid-column: span 2; padding:10px">
+                <h3 style="margin:0 0 6px 0; font-size:11px">Sleep (h)</h3>
+                <div class="kpi"><div class="val" style="font-size:20px" id="whoopSleep">—</div></div>
+              </div>
+              <div class="card" style="grid-column: span 2; padding:10px">
+                <h3 style="margin:0 0 6px 0; font-size:11px">Sleep Score</h3>
+                <div class="kpi"><div class="val" style="font-size:20px" id="whoopSleepScore">—</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="card" style="grid-column: span 12">
+            <h3>Whoop Tendances (30j)</h3>
             <div class="chartWrap"><canvas id="whoopChart"></canvas></div>
           </div>
           <div class="card" style="grid-column: span 5">
@@ -424,8 +458,17 @@
               <button class="btn" id="syncWhoopBtn2">Sync (30j)</button>
             </div>
             <div style="margin-top:10px" class="pill"><span class="dot" id="whoopDot2"></span> <span id="whoopStatus2">—</span></div>
-            <div style="margin-top:10px; color:var(--muted); font-size:12px">
-              Env requis: WHOOP_CLIENT_ID, WHOOP_CLIENT_SECRET, WHOOP_REDIRECT_URI
+            <div style="margin-top:10px; color:var(--muted); font-size:12px; line-height:1.6">
+              <strong style="color:var(--text)">Setup Whoop OAuth (5 min) :</strong><br>
+              1. Va sur <a href="https://developer.whoop.com" target="_blank" style="color:var(--accent)">developer.whoop.com</a> → crée une app<br>
+              2. Redirect URI : <code style="background:rgba(255,255,255,.05); padding:2px 6px; border-radius:4px">https://TON-DOMAINE.vercel.app/api/whoop/callback</code><br>
+              3. Scopes : <code style="background:rgba(255,255,255,.05); padding:2px 6px; border-radius:4px">read:recovery read:sleep read:workout read:cycle</code><br>
+              4. Copie <strong>Client ID</strong> + <strong>Client Secret</strong><br>
+              5. Vercel → Settings → Environment Variables → ajoute :<br>
+              &nbsp;&nbsp;• <code style="background:rgba(255,255,255,.05); padding:2px 6px; border-radius:4px">WHOOP_CLIENT_ID</code><br>
+              &nbsp;&nbsp;• <code style="background:rgba(255,255,255,.05); padding:2px 6px; border-radius:4px">WHOOP_CLIENT_SECRET</code><br>
+              &nbsp;&nbsp;• <code style="background:rgba(255,255,255,.05); padding:2px 6px; border-radius:4px">WHOOP_REDIRECT_URI</code> = ton redirect URI complet<br>
+              6. Redéploie Vercel → clique "Connect Whoop" → autorise → Sync !
             </div>
           </div>
 
@@ -493,17 +536,22 @@
       if(!ctx) return;
       const existing = state.charts[canvasId];
       if(existing) existing.destroy();
+      const hasY2 = datasets.some(d => d.yAxisID === 'y2');
+      const scales = {
+        x:{ ticks:{color:'rgba(255,255,255,.45)'}, grid:{color:'rgba(255,255,255,.05)'} },
+        y:{ ticks:{color:'rgba(255,255,255,.45)'}, grid:{color:'rgba(255,255,255,.05)'}, position:'left' }
+      };
+      if(hasY2) {
+        scales.y2 = { ticks:{color:'rgba(255,255,255,.45)'}, grid:{display:false}, position:'right' };
+      }
       state.charts[canvasId] = new Chart(ctx, {
         type:'line',
         data:{ labels, datasets },
         options:{
           responsive:true,
           maintainAspectRatio:false,
-          plugins:{ legend:{display:false} },
-          scales:{
-            x:{ ticks:{color:'rgba(255,255,255,.45)'}, grid:{color:'rgba(255,255,255,.05)'} },
-            y:{ ticks:{color:'rgba(255,255,255,.45)'}, grid:{color:'rgba(255,255,255,.05)'} }
-          }
+          plugins:{ legend:{display: datasets.some(d=>d.label), labels:{color:'rgba(255,255,255,.75)', boxWidth:12}} },
+          scales
         }
       });
     }
@@ -561,6 +609,28 @@
         el.className='alert';
         el.innerHTML = `<span class="tag">ALERT</span><div style="font-weight:700">${a}</div>`;
         wrap.appendChild(el);
+      });
+
+      // Financial goals progress
+      const goals = await api('/financial-goals');
+      const goalsWrap = $('#goalsProgress');
+      goalsWrap.innerHTML = '';
+      const cashVal = Number(settings.cash_available || 0);
+      goals.forEach(g=>{
+        const pct = Math.min((cashVal / g.amount) * 100, 100);
+        const el = document.createElement('div');
+        el.style.cssText = 'flex:1; min-width:140px';
+        el.innerHTML = `
+          <div style="margin-bottom:6px; display:flex; justify-content:space-between; align-items:baseline">
+            <div style="font-weight:900">${money(g.amount)}</div>
+            <div style="color:var(--muted); font-size:12px">${Math.round(pct)}%</div>
+          </div>
+          <div style="height:8px; background:rgba(255,255,255,.08); border-radius:99px; overflow:hidden">
+            <div style="width:${pct}%; height:100%; background:${g.achieved?'var(--good)':'var(--accent)'}; border-radius:99px; transition:.3s"></div>
+          </div>
+          <div style="color:var(--muted); font-size:11px; margin-top:4px">${g.label||'Objectif'}${g.achieved?' ✅':''}</div>
+        `;
+        goalsWrap.appendChild(el);
       });
 
       // Spend chart (30d)
@@ -711,13 +781,27 @@
     async function loadBody(){
       // whoop chart
       const whoop = await api(`/whoop/data?start=${new Date(Date.now()-30*864e5).toISOString().slice(0,10)}&end=${isoToday()}`);
-      const labels = whoop.slice().reverse().map(r=>r.date.slice(5,10));
+      const labels = whoop.slice().reverse().map(r=>{
+        const [y,m,d] = r.date.split('-');
+        return `${d}/${m}`;
+      });
       const recovery = whoop.slice().reverse().map(r=>r.recovery_score ?? null);
       const strain = whoop.slice().reverse().map(r=>r.strain ?? null);
+      const hrv = whoop.slice().reverse().map(r=>r.hrv ?? null);
       chartLine('whoopChart', labels, [
-        { data: recovery, borderColor:'rgba(79,124,255,.95)', tension:.35, pointRadius:0 },
-        { data: strain, borderColor:'rgba(43,231,167,.75)', tension:.35, pointRadius:0 }
+        { label:'Recovery', data: recovery, borderColor:'rgba(79,124,255,.95)', tension:.35, pointRadius:0 },
+        { label:'Strain', data: strain, borderColor:'rgba(43,231,167,.75)', tension:.35, pointRadius:0 },
+        { label:'HRV', data: hrv, borderColor:'rgba(255,211,106,.75)', tension:.35, pointRadius:0, yAxisID:'y2' }
       ]);
+
+      // whoop metrics today
+      const today = whoop.find(r => r.date === isoToday()) || whoop[0] || {};
+      $('#whoopRecoveryToday').textContent = today.recovery_score ?? '—';
+      $('#whoopStrainToday').textContent = today.strain ?? '—';
+      $('#whoopHRV').textContent = today.hrv ?? '—';
+      $('#whoopHR').textContent = today.resting_hr ?? '—';
+      $('#whoopSleep').textContent = today.sleep_hours ? today.sleep_hours.toFixed(1) : '—';
+      $('#whoopSleepScore').textContent = today.sleep_score ?? '—';
 
       const prs = await api('/prs');
       $('#prsList').innerHTML = prs.map(p=>`<div class="alert"><span class="tag">PR</span><div><div style="font-weight:900">${p.exercise_name}</div><div style="color:var(--muted); font-size:12px">${p.weight}×${p.reps} • ${p.date}</div></div></div>`).join('') || '<div style="color:var(--muted)">Aucun PR</div>';
