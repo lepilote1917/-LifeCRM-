@@ -8,12 +8,48 @@ const axios = require('axios');
 const crypto = require('crypto');
 
 const db = require('./database');
+const { requireAuth, checkPassword, SESSION_SECRET } = require('./auth');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(bodyParser.json({ limit: '2mb' }));
+
+// Auth endpoints (avant le middleware)
+app.post('/api/auth/login', (req, res) => {
+  const { password } = req.body;
+  if (checkPassword(password)) {
+    const maxAge = 30 * 24 * 60 * 60; // 30 jours en secondes
+    const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+    res.setHeader('Set-Cookie', `lifecrm_auth=${SESSION_SECRET}; HttpOnly${secure}; Path=/; Max-Age=${maxAge}; SameSite=Lax`);
+    res.json({ ok: true });
+  } else {
+    res.status(401).json({ error: 'Invalid password' });
+  }
+});
+
+app.get('/api/auth/check', (req, res) => {
+  const authCookie = req.headers.cookie?.split(';')
+    .find(c => c.trim().startsWith('lifecrm_auth='))
+    ?.split('=')[1];
+  res.json({ authenticated: authCookie === SESSION_SECRET });
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  res.setHeader('Set-Cookie', 'lifecrm_auth=; HttpOnly; Path=/; Max-Age=0');
+  res.json({ ok: true });
+});
+
+// Middleware d'authentification (protège tout sauf login)
+app.use((req, res, next) => {
+  // Exclure login.html et API auth
+  if (req.path === '/login.html' || req.path.startsWith('/api/auth/')) {
+    return next();
+  }
+  requireAuth(req, res, next);
+});
+
 app.use(express.static('public'));
 
 // Init schema
