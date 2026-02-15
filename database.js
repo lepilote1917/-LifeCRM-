@@ -28,6 +28,17 @@ async function initSchema() {
         achieved_at TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+      
+      -- Ajouter contrainte UNIQUE sur amount (empêche les doublons)
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint 
+          WHERE conname = 'financial_goals_amount_unique'
+        ) THEN
+          ALTER TABLE financial_goals ADD CONSTRAINT financial_goals_amount_unique UNIQUE (amount);
+        END IF;
+      END $$;
 
       -- Expenses
       CREATE TABLE IF NOT EXISTS expenses (

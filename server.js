@@ -133,6 +133,10 @@ app.post('/api/financial-goals', async (req, res) => {
     if (!amount) return res.status(400).json({ error: 'amount required' });
     res.json(await db.createFinancialGoal(amount, label));
   } catch (e) {
+    // Erreur contrainte UNIQUE (doublon)
+    if (e.code === '23505') {
+      return res.status(400).json({ error: `Un objectif de ${amount}€ existe déjà` });
+    }
     res.status(500).json({ error: e.message });
   }
 });
