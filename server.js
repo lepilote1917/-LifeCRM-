@@ -144,6 +144,15 @@ app.post('/api/financial-goals/:id/achieve', async (req, res) => {
   }
 });
 
+app.delete('/api/financial-goals/:id', async (req, res) => {
+  try {
+    await db.pool.query('DELETE FROM financial_goals WHERE id = $1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ---------- Corps / Training ----------
 app.get('/api/workouts', async (req, res) => {
   try {

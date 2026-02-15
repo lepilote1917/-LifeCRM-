@@ -284,7 +284,7 @@
           <div class="card" style="grid-column: span 7">
             <h3>Dépenses récentes</h3>
             <table class="table" id="expensesTable">
-              <thead><tr><th>Date</th><th>Catégorie</th><th>Note</th><th>Montant</th></tr></thead>
+              <thead><tr><th>Date</th><th>Catégorie</th><th>Note</th><th>Montant</th><th>Actions</th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -430,6 +430,17 @@
           </div>
 
           <div class="card" style="grid-column: span 12">
+            <h3>Objectifs financiers (paliers)</h3>
+            <p style="margin:0 0 10px 0; color:var(--muted); font-size:13px">Configure tes paliers d'épargne (ex: 1000€, 5000€, 10000€...)</p>
+            <div class="row" style="margin-bottom:10px">
+              <input class="input" type="number" id="goalAmount" placeholder="Montant (€)" style="max-width:160px">
+              <input class="input" id="goalLabel" placeholder="Label (optionnel)" style="max-width:200px">
+              <button class="btn primary" id="addGoalBtn">Ajouter objectif</button>
+            </div>
+            <div id="goalsList2" class="row"></div>
+          </div>
+
+          <div class="card" style="grid-column: span 12">
             <h3>Habitudes (MVP bonus)</h3>
             <div class="row" style="margin-bottom:10px">
               <input class="input" id="habitName" placeholder="Nouvelle habitude (ex: 10k pas)" style="max-width:360px">
@@ -558,7 +569,9 @@
       expenses.forEach(e=>{ byDay.set(e.date, (byDay.get(e.date)||0) + Number(e.amount)); });
       const labels = Array.from({length:30},(_,i)=>{
         const d = new Date(Date.now()-(29-i)*864e5);
-        return d.toISOString().slice(5,10);
+        const day = d.getDate();
+        const month = d.getMonth()+1;
+        return `${day}/${month}`;
       });
       const values = Array.from({length:30},(_,i)=>{
         const d = new Date(Date.now()-(29-i)*864e5).toISOString().slice(0,10);
@@ -568,7 +581,10 @@
 
       // Weight chart (90d)
       const weights = await api(`/weight?start=${new Date(Date.now()-90*864e5).toISOString().slice(0,10)}&end=${isoToday()}`);
-      const wLabels = weights.slice().reverse().map(r=>r.date.slice(5,10));
+      const wLabels = weights.slice().reverse().map(r=>{
+        const [y,m,d] = r.date.split('-');
+        return `${d}/${m}`;
+      });
       const wVals = weights.slice().reverse().map(r=>Number(r.weight));
       chartLine('weightChart', wLabels, [{data:wVals, borderColor:'rgba(255,255,255,.85)', tension:.35, pointRadius:0}]);
       chartLine('weightChart2', wLabels, [{data:wVals, borderColor:'rgba(255,255,255,.85)', tension:.35, pointRadius:0}]);
@@ -675,7 +691,7 @@
 
       const expenses = await api(`/expenses?start=${new Date(Date.now()-30*864e5).toISOString().slice(0,10)}&end=${isoToday()}`);
       const tbody = $('#expensesTable tbody');
-      tbody.innerHTML = expenses.slice(0,12).map(e=>`<tr><td>${e.date}</td><td>${e.category}</td><td>${e.note||''}</td><td style="font-weight:900">${money(e.amount)}</td></tr>`).join('');
+      tbody.innerHTML = expenses.slice(0,12).map(e=>`<tr><td>${e.date}</td><td>${e.category}</td><td>${e.note||''}</td><td style="font-weight:900">${money(e.amount)}</td><td><button class="btn" style="padding:4px 8px; font-size:11px" onclick="deleteExpense(${e.id})">🗑</button></td></tr>`).join('');
 
       const goals = await api('/financial-goals');
       const wrap = $('#goalsList');
@@ -757,6 +773,23 @@
       // habits today
       const logs = await api(`/habits/logs?date=${isoToday()}`);
       renderHabits(logs);
+
+      // goals
+      const goals = await api('/financial-goals');
+      renderGoals2(goals);
+    }
+
+    function renderGoals2(goals){
+      const wrap = $('#goalsList2');
+      if(!goals.length) { wrap.innerHTML = `<div style="color:var(--muted)">Ajoute un objectif ci-dessus.</div>`; return; }
+      wrap.innerHTML = goals.map(g=>`
+        <div class="alert" style="justify-content:space-between">
+          <div>
+            <div style="font-weight:900">${money(g.amount)}</div>
+            <div style="color:var(--muted); font-size:12px">${g.label||'Sans label'}${g.achieved?' • ✅ Atteint':''}</div>
+          </div>
+          <button class="btn" style="padding:4px 8px; font-size:11px" onclick="deleteGoal(${g.id})">🗑</button>
+        </div>`).join('');
     }
 
     function renderHabits(logs){
@@ -780,6 +813,21 @@
           await loadDashboard();
         };
       });
+    }
+
+    async function deleteExpense(id){
+      if(!confirm('Supprimer cette dépense ?')) return;
+      await api(`/expenses/${id}`, {method:'DELETE'});
+      await loadDashboard();
+      await loadFinances();
+    }
+
+    async function deleteGoal(id){
+      if(!confirm('Supprimer cet objectif ?')) return;
+      await api(`/financial-goals/${id}`, {method:'DELETE'});
+      await loadSettings();
+      await loadFinances();
+      await loadDashboard();
     }
 
     // Forms
@@ -840,6 +888,18 @@
       const f = new FormData(e.target);
       for(const [k,v] of f.entries()) await api('/settings',{method:'POST',body:JSON.stringify({key:k,value:v})});
       alert('Settings saved');
+      await loadDashboard();
+    };
+
+    $('#addGoalBtn').onclick = async ()=>{
+      const amount = parseInt($('#goalAmount').value);
+      const label = $('#goalLabel').value.trim();
+      if(!amount || amount<=0) return alert('Montant invalide');
+      await api('/financial-goals',{method:'POST',body:JSON.stringify({amount, label: label||null})});
+      $('#goalAmount').value='';
+      $('#goalLabel').value='';
+      await loadSettings();
+      await loadFinances();
       await loadDashboard();
     };
 
