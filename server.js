@@ -234,6 +234,16 @@ app.post('/api/admin/cleanup-goals', async (req, res) => {
   }
 });
 
+// Admin: cleanup Whoop data + force resync
+app.post('/api/admin/reset-whoop', async (req, res) => {
+  try {
+    const deleted = await db.pool.query('DELETE FROM whoop_data');
+    res.json({ ok: true, deleted: deleted.rowCount, message: 'Whoop data cleared. Run /api/whoop/sync to resync.' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ---------- Corps / Training ----------
 app.get('/api/workouts', async (req, res) => {
   try {
@@ -538,12 +548,17 @@ app.post('/api/cron/whoop-sync', async (req, res) => {
 
     let upserted = 0;
     for (const c of cycles) {
-      const dateKey = (c?.end || c?.timestamp || c?.date)?.slice?.(0, 10);
-      if (!dateKey) continue;
+      const endDateStr = (c?.end || c?.timestamp || c?.date)?.slice?.(0, 10);
+      if (!endDateStr) continue;
 
-      const sleep = sleepByDate.get(dateKey);
+      // Whoop cycle "end" = lendemain matin. Décaler -1 jour pour mapper à la date d'activité réelle.
+      const endDate = new Date(endDateStr);
+      endDate.setDate(endDate.getDate() - 1);
+      const activityDate = endDate.toISOString().split('T')[0];
+
+      const sleep = sleepByDate.get(endDateStr); // Sleep reste sur date de fin
       await db.saveWhoopData({
-        date: dateKey,
+        date: activityDate, // Date d'activité corrigée
         sleep_score: sleep?.score?.stage_summary?.score || sleep?.score || null,
         recovery_score: c?.score?.recovery_score || c?.recovery_score || null,
         strain: c?.score?.strain || c?.strain || null,
@@ -610,13 +625,18 @@ app.post('/api/whoop/sync', async (req, res) => {
 
     let upserted = 0;
     for (const c of cycles) {
-      const d = (c?.end || c?.timestamp || c?.date || c?.cycle_end)?.slice?.(0, 10) || c?.date;
-      if (!d) continue;
+      const endDateStr = (c?.end || c?.timestamp || c?.date || c?.cycle_end)?.slice?.(0, 10) || c?.date;
+      if (!endDateStr) continue;
 
-      const s = sleepByDate.get(d);
+      // Whoop cycle "end" = lendemain matin. Décaler -1 jour pour mapper à la date d'activité réelle.
+      const endDate = new Date(endDateStr);
+      endDate.setDate(endDate.getDate() - 1);
+      const activityDate = endDate.toISOString().split('T')[0];
+
+      const s = sleepByDate.get(endDateStr);
 
       const payload = {
-        date: d,
+        date: activityDate, // Date d'activité corrigée
         sleep_score: s?.score?.sleep || s?.sleep_score || null,
         recovery_score: c?.score?.recovery || c?.recovery_score || null,
         strain: c?.score?.strain || c?.strain || null,
