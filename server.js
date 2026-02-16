@@ -41,13 +41,14 @@ app.post('/api/auth/logout', (req, res) => {
   res.json({ ok: true });
 });
 
-// Servir les fichiers statiques AVANT l'auth
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Middleware d'authentification (protège les routes sauf login et auth API)
+// Middleware d'authentification (protège TOUT sauf login et auth API)
 app.use((req, res, next) => {
-  // Exclure login.html et API auth
-  if (req.path === '/login.html' || req.path.startsWith('/api/auth/')) {
+  // Exclure login.html, auth API, et assets statiques (CSS/JS/images)
+  const isPublicAsset = /\.(css|js|png|jpg|jpeg|gif|svg|ico|woff2?|ttf|eot)$/i.test(req.path);
+  const isLoginPage = req.path === '/login.html';
+  const isAuthAPI = req.path.startsWith('/api/auth/');
+  
+  if (isPublicAsset || isLoginPage || isAuthAPI) {
     return next();
   }
   
@@ -65,9 +66,12 @@ app.use((req, res, next) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
-  // Rediriger HTML vers login
+  // Rediriger vers login
   res.redirect('/login.html');
 });
+
+// Servir les fichiers statiques APRÈS l'auth
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Init schema
 db.initSchema().catch((e) => console.error('Init error:', e));
