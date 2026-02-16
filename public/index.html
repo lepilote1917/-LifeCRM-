@@ -283,7 +283,19 @@
             <h3>Nouvelle dépense</h3>
             <form class="form" id="expenseForm">
               <div class="col6"><input class="input" name="amount" placeholder="Montant (€)" type="number" step="0.01" required></div>
-              <div class="col6"><input class="input" name="category" placeholder="Catégorie" required></div>
+              <div class="col6"><input class="input" name="category" list="expensePoles" placeholder="Pôle de dépense" required></div>
+              <datalist id="expensePoles">
+                <option value="Alimentation"></option>
+                <option value="Transport"></option>
+                <option value="Logement"></option>
+                <option value="Santé"></option>
+                <option value="Sport"></option>
+                <option value="Abonnements"></option>
+                <option value="Loisirs"></option>
+                <option value="Business"></option>
+                <option value="Voyage"></option>
+                <option value="Divers"></option>
+              </datalist>
               <div class="col12"><input class="input" name="note" placeholder="Note (optionnel)"></div>
               <div class="col12"><input class="input" name="tags" placeholder="Tags (séparés par virgules)"></div>
               <div class="col6"><input class="input" name="date" type="date" required></div>
@@ -291,9 +303,9 @@
             </form>
           </div>
           <div class="card" style="grid-column: span 7">
-            <h3>Dépenses récentes</h3>
-            <table class="table" id="expensesTable">
-              <thead><tr><th>Date</th><th>Catégorie</th><th>Note</th><th>Montant</th><th>Actions</th></tr></thead>
+            <h3>Pôles de dépense (30j)</h3>
+            <table class="table" id="spendByPoleTable">
+              <thead><tr><th>Pôle</th><th>Total</th><th>%</th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -307,8 +319,22 @@
               </div>
               <div class="pill">Alerte automatique</div>
             </div>
+            <div style="margin-top:12px; color:var(--muted); font-size:13px" id="weekCompareSummary">—</div>
           </div>
           <div class="card" style="grid-column: span 6">
+            <h3>Comparaison hebdo</h3>
+            <table class="table" id="weeklyCompareTable">
+              <thead><tr><th>Semaine</th><th>Total</th><th>Écart</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div class="card" style="grid-column: span 12">
+            <h3>Historique dépenses (par semaine)</h3>
+            <div id="expensesWeeksAccordion"></div>
+          </div>
+
+          <div class="card" style="grid-column: span 12">
             <h3>Objectifs par paliers</h3>
             <div id="goalsList" class="row"></div>
           </div>
@@ -812,9 +838,100 @@
       state.settings = settings;
       $('#weeklyBudget').textContent = money(Number(settings.weekly_budget||0));
 
-      const expenses = await api(`/expenses?start=${new Date(Date.now()-30*864e5).toISOString().slice(0,10)}&end=${isoToday()}`);
-      const tbody = $('#expensesTable tbody');
-      tbody.innerHTML = expenses.slice(0,12).map(e=>`<tr><td>${e.date}</td><td>${e.category}</td><td>${e.note||''}</td><td style="font-weight:900">${money(e.amount)}</td><td><button class="btn" style="padding:4px 8px; font-size:11px" onclick="deleteExpense(${e.id})">🗑</button></td></tr>`).join('');
+      const expenses = await api(`/expenses?start=${new Date(Date.now()-90*864e5).toISOString().slice(0,10)}&end=${isoToday()}`);
+
+      // helpers
+      const weekStartIso = (dateStr) => {
+        const d = new Date(`${dateStr}T00:00:00`);
+        const day = (d.getDay() + 6) % 7; // lundi=0
+        d.setDate(d.getDate() - day);
+        return d.toISOString().slice(0,10);
+      };
+      const addDaysIso = (dateStr, days) => {
+        const d = new Date(`${dateStr}T00:00:00`);
+        d.setDate(d.getDate() + days);
+        return d.toISOString().slice(0,10);
+      };
+
+      // 1) Pôles de dépense (30j)
+      const last30 = expenses.filter(e => e.date >= new Date(Date.now()-30*864e5).toISOString().slice(0,10));
+      const byPole = {};
+      last30.forEach(e => {
+        const k = (e.category || 'Autre').trim();
+        byPole[k] = (byPole[k] || 0) + Number(e.amount || 0);
+      });
+      const total30 = Object.values(byPole).reduce((a,b)=>a+b,0) || 0;
+      const poleRows = Object.entries(byPole).sort((a,b)=>b[1]-a[1]);
+      const poleTbody = $('#spendByPoleTable tbody');
+      poleTbody.innerHTML = poleRows.length
+        ? poleRows.map(([pole,val])=>`<tr><td>${pole}</td><td style="font-weight:900">${money(val)}</td><td>${total30?Math.round((val/total30)*100):0}%</td></tr>`).join('')
+        : '<tr><td colspan="3" style="color:var(--muted); text-align:center">Aucune dépense sur 30 jours</td></tr>';
+
+      // 2) Comparaison hebdo
+      const byWeek = {};
+      expenses.forEach(e => {
+        const ws = weekStartIso(e.date);
+        byWeek[ws] = (byWeek[ws] || 0) + Number(e.amount || 0);
+      });
+      const weeks = Object.keys(byWeek).sort().reverse();
+      const compareTbody = $('#weeklyCompareTable tbody');
+      compareTbody.innerHTML = weeks.slice(0,6).map((ws, idx) => {
+        const total = byWeek[ws] || 0;
+        const prev = byWeek[weeks[idx+1]] || 0;
+        const delta = total - prev;
+        const sign = delta > 0 ? '+' : '';
+        const color = delta > 0 ? 'var(--bad)' : delta < 0 ? 'var(--good)' : 'var(--muted)';
+        const we = addDaysIso(ws, 6);
+        return `<tr>
+          <td>${ws} → ${we}</td>
+          <td style="font-weight:900">${money(total)}</td>
+          <td style="color:${color}; font-weight:700">${idx===weeks.length-1?'—':`${sign}${money(delta)}`}</td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="3" style="color:var(--muted); text-align:center">Pas assez de données</td></tr>';
+
+      if (weeks.length >= 2) {
+        const cur = byWeek[weeks[0]] || 0;
+        const prev = byWeek[weeks[1]] || 0;
+        const delta = cur - prev;
+        const pct = prev ? Math.round((delta/prev)*100) : 0;
+        const trend = delta > 0 ? 'hausse' : delta < 0 ? 'baisse' : 'stable';
+        $('#weekCompareSummary').textContent = `Cette semaine: ${money(cur)} • Semaine précédente: ${money(prev)} • ${trend} ${pct>0?'+':''}${pct}%`;
+      } else {
+        $('#weekCompareSummary').textContent = 'Ajoute plus de dépenses pour activer la comparaison hebdo.';
+      }
+
+      // 3) Historique accordéon par semaine
+      const acc = $('#expensesWeeksAccordion');
+      const grouped = {};
+      expenses.forEach(e => {
+        const ws = weekStartIso(e.date);
+        if (!grouped[ws]) grouped[ws] = [];
+        grouped[ws].push(e);
+      });
+      const weekKeys = Object.keys(grouped).sort().reverse();
+      acc.innerHTML = weekKeys.map((ws, i) => {
+        const we = addDaysIso(ws, 6);
+        const items = grouped[ws].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+        const total = items.reduce((s,e)=>s+Number(e.amount||0),0);
+        return `<details ${i===0?'open':''} style="margin:10px 0; border:1px solid var(--border); border-radius:10px; padding:8px 10px; background:rgba(255,255,255,.02)">
+          <summary style="cursor:pointer; font-weight:800; display:flex; justify-content:space-between; gap:10px; list-style:none">
+            <span>Semaine ${ws} → ${we}</span>
+            <span>${money(total)} • ${items.length} ligne(s)</span>
+          </summary>
+          <div style="margin-top:8px; overflow:auto">
+            <table class="table">
+              <thead><tr><th>Date</th><th>Pôle</th><th>Note</th><th>Montant</th><th>Action</th></tr></thead>
+              <tbody>
+                ${items.map(e=>`<tr>
+                  <td>${e.date}</td><td>${e.category||'—'}</td><td>${e.note||''}</td>
+                  <td style="font-weight:900">${money(e.amount)}</td>
+                  <td><button class="btn" style="padding:4px 8px; font-size:11px" onclick="deleteExpense(${e.id})">🗑</button></td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </details>`;
+      }).join('') || '<div style="color:var(--muted)">Aucune dépense enregistrée.</div>';
 
       const goals = await api('/financial-goals');
       const wrap = $('#goalsList');
