@@ -973,7 +973,7 @@
       $('#whoopSleep').textContent = today.sleep_hours ? today.sleep_hours.toFixed(1) : '—';
 
       // Caloric deficit today
-      const nutritionToday = await api(`/nutrition?start=${isoDate()}&end=${isoDate()}`);
+      const nutritionToday = await api(`/nutrition?start=${isoToday()}&end=${isoToday()}`);
       const consumedToday = nutritionToday.reduce((sum, n) => sum + (n.calories || 0), 0);
       const burnedToday = today.calories || 0;
       const deficitToday = burnedToday - consumedToday;
