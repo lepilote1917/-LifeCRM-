@@ -565,6 +565,20 @@
     }
 
     function isoToday(){return new Date().toISOString().slice(0,10)}
+    
+    function weekStartIso(dateStr) {
+      const d = new Date(dateStr);
+      const day = d.getDay();
+      const diff = (day === 0 ? -6 : 1) - day; // Lundi = début de semaine
+      d.setDate(d.getDate() + diff);
+      return d.toISOString().slice(0, 10);
+    }
+    
+    function addDaysIso(dateStr, days) {
+      const d = new Date(dateStr);
+      d.setDate(d.getDate() + days);
+      return d.toISOString().slice(0, 10);
+    }
 
     function setView(view){
       $$('.nav button').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
