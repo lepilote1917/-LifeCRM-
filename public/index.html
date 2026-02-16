@@ -389,6 +389,35 @@
               <tbody id="whoopHistoryTable"></tbody>
             </table>
           </div>
+          <div class="card" style="grid-column: span 12">
+            <h3>📅 Historique Séances Muscu (30 derniers jours)</h3>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Durée</th>
+                  <th>Exercices</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody id="workoutsHistoryTable"></tbody>
+            </table>
+          </div>
+          <div class="card" style="grid-column: span 12">
+            <h3>🏃 Historique Cardio (30 derniers jours)</h3>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Durée</th>
+                  <th>Intensité</th>
+                  <th>Calories</th>
+                </tr>
+              </thead>
+              <tbody id="cardioHistoryTable"></tbody>
+            </table>
+          </div>
           <div class="card" style="grid-column: span 5">
             <h3>PRs récents</h3>
             <div id="prsList"></div>
@@ -863,6 +892,35 @@
 
       const prs = await api('/prs');
       $('#prsList').innerHTML = prs.map(p=>`<div class="alert"><span class="tag">PR</span><div><div style="font-weight:900">${p.exercise_name}</div><div style="color:var(--muted); font-size:12px">${p.weight}×${p.reps} • ${p.date}</div></div></div>`).join('') || '<div style="color:var(--muted)">Aucun PR</div>';
+
+      // Workouts history
+      const workoutsStart = new Date(Date.now()-30*864e5).toISOString().slice(0,10);
+      const workouts = await api(`/training/workouts?start=${workoutsStart}&end=${isoToday()}`);
+      const workoutsTable = $('#workoutsHistoryTable');
+      workoutsTable.innerHTML = workouts.length > 0 
+        ? workouts.slice(0, 20).map(w => {
+            const exCount = w.exercises?.length || 0;
+            return `<tr>
+              <td>${w.date}</td>
+              <td>${w.duration_min || '—'} min</td>
+              <td>${exCount} exercice${exCount > 1 ? 's' : ''}</td>
+              <td style="color:var(--muted); font-size:13px">${w.notes || '—'}</td>
+            </tr>`;
+          }).join('')
+        : '<tr><td colspan="4" style="color:var(--muted); text-align:center">Aucune séance enregistrée</td></tr>';
+
+      // Cardio history
+      const cardio = await api(`/training/cardio?start=${workoutsStart}&end=${isoToday()}`);
+      const cardioTable = $('#cardioHistoryTable');
+      cardioTable.innerHTML = cardio.length > 0
+        ? cardio.slice(0, 20).map(c => `<tr>
+            <td>${c.date}</td>
+            <td>${c.type}</td>
+            <td>${c.duration_min} min</td>
+            <td>${c.intensity || '—'}</td>
+            <td>${c.calories || '—'}</td>
+          </tr>`).join('')
+        : '<tr><td colspan="5" style="color:var(--muted); text-align:center">Aucun cardio enregistré</td></tr>';
 
       $('#workoutForm [name=date]').value = isoToday();
       $('#cardioForm [name=date]').value = isoToday();
