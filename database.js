@@ -321,6 +321,14 @@ async function createCardio(data) {
   return result.rows[0];
 }
 
+async function deleteWorkout(id) {
+  await pool.query('DELETE FROM workouts WHERE id = $1', [id]);
+}
+
+async function deleteCardio(id) {
+  await pool.query('DELETE FROM cardio WHERE id = $1', [id]);
+}
+
 async function getPRs() {
   const result = await pool.query('SELECT * FROM prs ORDER BY date DESC LIMIT 20');
   return result.rows;
@@ -486,8 +494,10 @@ module.exports = {
   getWorkouts,
   getWorkout,
   createWorkout,
+  deleteWorkout,
   getCardio,
   createCardio,
+  deleteCardio,
   getPRs,
   createPR,
   getNutrition,

@@ -276,6 +276,15 @@ app.post('/api/workouts', async (req, res) => {
   }
 });
 
+app.delete('/api/workouts/:id', async (req, res) => {
+  try {
+    await db.deleteWorkout(req.params.id);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/cardio', async (req, res) => {
   try {
     const start = req.query.start || addDays(isoDate(), -30);
@@ -291,6 +300,15 @@ app.post('/api/cardio', async (req, res) => {
     const { date, type, duration_min } = req.body;
     if (!date || !type || !duration_min) return res.status(400).json({ error: 'date, type, duration_min required' });
     res.json(await db.createCardio(req.body));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete('/api/cardio/:id', async (req, res) => {
+  try {
+    await db.deleteCardio(req.params.id);
+    res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

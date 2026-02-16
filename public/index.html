@@ -398,6 +398,7 @@
                   <th>Durée</th>
                   <th>Exercices</th>
                   <th>Notes</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody id="workoutsHistoryTable"></tbody>
@@ -413,6 +414,7 @@
                   <th>Durée</th>
                   <th>Intensité</th>
                   <th>Calories</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody id="cardioHistoryTable"></tbody>
@@ -905,9 +907,10 @@
               <td>${w.duration_min || '—'} min</td>
               <td>${exCount} exercice${exCount > 1 ? 's' : ''}</td>
               <td style="color:var(--muted); font-size:13px">${w.notes || '—'}</td>
+              <td><button class="btn" data-del-workout="${w.id}" style="padding:6px 10px">🗑️</button></td>
             </tr>`;
           }).join('')
-        : '<tr><td colspan="4" style="color:var(--muted); text-align:center">Aucune séance enregistrée</td></tr>';
+        : '<tr><td colspan="5" style="color:var(--muted); text-align:center">Aucune séance enregistrée</td></tr>';
 
       // Cardio history
       const cardio = await api(`/cardio?start=${workoutsStart}&end=${isoToday()}`);
@@ -919,8 +922,27 @@
             <td>${c.duration_min} min</td>
             <td>${c.intensity || '—'}</td>
             <td>${c.calories || '—'}</td>
+            <td><button class="btn" data-del-cardio="${c.id}" style="padding:6px 10px">🗑️</button></td>
           </tr>`).join('')
-        : '<tr><td colspan="5" style="color:var(--muted); text-align:center">Aucun cardio enregistré</td></tr>';
+        : '<tr><td colspan="6" style="color:var(--muted); text-align:center">Aucun cardio enregistré</td></tr>';
+
+      // Delete handlers
+      workoutsTable.querySelectorAll('[data-del-workout]').forEach(btn => {
+        btn.onclick = async () => {
+          if (!confirm('Supprimer cette séance muscu ?')) return;
+          await api(`/workouts/${btn.dataset.delWorkout}`, { method:'DELETE' });
+          await loadDashboard();
+          await loadBody();
+        };
+      });
+      cardioTable.querySelectorAll('[data-del-cardio]').forEach(btn => {
+        btn.onclick = async () => {
+          if (!confirm('Supprimer cette séance cardio ?')) return;
+          await api(`/cardio/${btn.dataset.delCardio}`, { method:'DELETE' });
+          await loadDashboard();
+          await loadBody();
+        };
+      });
 
       $('#workoutForm [name=date]').value = isoToday();
       $('#cardioForm [name=date]').value = isoToday();
@@ -1062,6 +1084,7 @@
       e.target.reset();
       $('#cardioForm [name=date]').value = isoToday();
       await loadDashboard();
+      await loadBody();
     };
 
     $('#mealForm').onsubmit = async (e)=>{
