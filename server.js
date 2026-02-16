@@ -41,14 +41,15 @@ app.post('/api/auth/logout', (req, res) => {
   res.json({ ok: true });
 });
 
-// Middleware d'authentification (protège TOUT sauf login et auth API)
+// Middleware d'authentification (protège TOUT sauf login, auth API, et cron)
 app.use((req, res, next) => {
-  // Exclure login.html, auth API, et assets statiques (CSS/JS/images)
+  // Exclure login.html, auth API, cron endpoints, et assets statiques
   const isPublicAsset = /\.(css|js|png|jpg|jpeg|gif|svg|ico|woff2?|ttf|eot)$/i.test(req.path);
   const isLoginPage = req.path === '/login.html';
   const isAuthAPI = req.path.startsWith('/api/auth/');
+  const isCronAPI = req.path.startsWith('/api/cron/');
   
-  if (isPublicAsset || isLoginPage || isAuthAPI) {
+  if (isPublicAsset || isLoginPage || isAuthAPI || isCronAPI) {
     return next();
   }
   
