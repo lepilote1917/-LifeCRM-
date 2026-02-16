@@ -799,9 +799,12 @@
     async function loadBody(){
       // whoop chart
       const whoop = await api(`/whoop/data?start=${new Date(Date.now()-30*864e5).toISOString().slice(0,10)}&end=${isoToday()}`);
+      const monthsFr = ['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
       const labels = whoop.slice().reverse().map(r=>{
-        const [y,m,d] = r.date.split('-');
-        return `${d}/${m}`;
+        const d = new Date(r.date);
+        const day = d.getUTCDate();
+        const month = monthsFr[d.getUTCMonth()];
+        return `${day} ${month}`;
       });
       const strain = whoop.slice().reverse().map(r=>r.strain ? parseFloat(r.strain) : null);
       const calories = whoop.slice().reverse().map(r=>r.calories ?? null);

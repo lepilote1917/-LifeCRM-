@@ -492,6 +492,76 @@ async function whoopRefreshIfNeeded() {
   return await db.getWhoopAuth();
 }
 
+// Public cron endpoint (protected by secret)
+app.post('/api/cron/whoop-sync', async (req, res) => {
+  const secret = req.headers['x-cron-secret'] || req.query.secret;
+  const CRON_SECRET = process.env.CRON_SECRET || SESSION_SECRET;
+  
+  if (secret !== CRON_SECRET) {
+    return res.status(401).json({ error: 'Invalid cron secret' });
+  }
+
+  try {
+    const days = Number(req.body.days || 2);
+    const auth = await whoopRefreshIfNeeded();
+    if (!auth) return res.status(400).json({ error: 'Whoop not connected' });
+
+    const headers = { Authorization: `Bearer ${auth.access_token}` };
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - Math.min(Math.max(days, 1), 365));
+
+    const end = endDate.toISOString();
+    const start = startDate.toISOString();
+
+    const cyclesUrl = `${WHOOP_API_BASE}/cycle?start=${start}&end=${end}&limit=25`;
+    const sleepUrl = `${WHOOP_API_BASE}/sleep?start=${start}&end=${end}&limit=25`;
+
+    const [cyclesRes, sleepRes] = await Promise.all([
+      axios.get(cyclesUrl, { headers }).catch((e) => ({ error: e })),
+      axios.get(sleepUrl, { headers }).catch((e) => ({ error: e }))
+    ]);
+
+    if (cyclesRes.error && sleepRes.error) {
+      return res.status(502).json({ error: 'Whoop API error' });
+    }
+
+    const cycles = (cyclesRes.data?.records || cyclesRes.data?.data || cyclesRes.data || []).map((r) => r);
+    const sleeps = (sleepRes.data?.records || sleepRes.data?.data || sleepRes.data || []).map((r) => r);
+
+    const sleepByDate = new Map();
+    for (const s of sleeps) {
+      const d = (s?.end || s?.timestamp || s?.date || s?.sleep_start)?.slice?.(0, 10) || s?.date;
+      if (d) sleepByDate.set(d, s);
+    }
+
+    let upserted = 0;
+    for (const c of cycles) {
+      const dateKey = (c?.end || c?.timestamp || c?.date)?.slice?.(0, 10);
+      if (!dateKey) continue;
+
+      const sleep = sleepByDate.get(dateKey);
+      await db.saveWhoopData({
+        date: dateKey,
+        sleep_score: sleep?.score?.stage_summary?.score || sleep?.score || null,
+        recovery_score: c?.score?.recovery_score || c?.recovery_score || null,
+        strain: c?.score?.strain || c?.strain || null,
+        hrv: c?.score?.hrv_rmssd_milli || c?.hrv || null,
+        resting_hr: c?.score?.resting_heart_rate || c?.resting_hr || null,
+        sleep_hours: sleep?.score?.sleep_hours || sleep?.sleep_hours ? (sleep.score?.sleep_hours || sleep.sleep_hours) / 60 : null,
+        sleep_debt: sleep?.score?.sleep_debt || sleep?.sleep_debt || null,
+        calories: c?.score?.kilojoule ? Math.round(c.score.kilojoule * 0.239006) : c?.calories || null
+      });
+      upserted++;
+    }
+
+    res.json({ ok: true, upserted, range: { start, end } });
+  } catch (error) {
+    console.error('Cron sync error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post('/api/whoop/sync', async (req, res) => {
   try {
     const days = Number(req.body.days || 30);
