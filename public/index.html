@@ -416,35 +416,12 @@
             </table>
           </div>
           <div class="card" style="grid-column: span 12">
-            <h3>📅 Historique Séances Muscu (30 derniers jours) • v2</h3>
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Durée</th>
-                  <th>Exercices</th>
-                  <th>Notes</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="workoutsHistoryTable"></tbody>
-            </table>
+            <h3>💪 Historique Muscu (par semaine)</h3>
+            <div id="workoutsAccordion"></div>
           </div>
           <div class="card" style="grid-column: span 12">
-            <h3>🏃 Historique Cardio (30 derniers jours)</h3>
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Type</th>
-                  <th>Durée</th>
-                  <th>Intensité</th>
-                  <th>Calories</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="cardioHistoryTable"></tbody>
-            </table>
+            <h3>🏃 Historique Cardio (par semaine)</h3>
+            <div id="cardioAccordion"></div>
           </div>
           <div class="card" style="grid-column: span 5">
             <h3>PRs récents</h3>
@@ -1015,42 +992,86 @@
       // Workouts history
       const workoutsStart = new Date(Date.now()-30*864e5).toISOString().slice(0,10);
       const workouts = await api(`/workouts?start=${workoutsStart}&end=${isoToday()}`);
-      console.log('[DEBUG] Workouts loaded:', workouts.length, workouts);
-      const workoutsTable = $('#workoutsHistoryTable');
-      if (!workoutsTable) {
-        console.error('[ERROR] workoutsHistoryTable element not found!');
-        return;
-      }
-      workoutsTable.innerHTML = workouts.length > 0 
-        ? workouts.slice(0, 20).map(w => {
-            const exCount = w.exercises?.length || 0;
-            const exText = exCount > 0 ? `${exCount} exercice${exCount > 1 ? 's' : ''}` : '—';
-            return `<tr>
-              <td>${w.date.split('T')[0]}</td>
-              <td>${w.duration_min || '—'} min</td>
-              <td>${exText}</td>
-              <td style="color:var(--muted); font-size:13px">${w.notes || '—'}</td>
-              <td><button class="btn" data-del-workout="${w.id}" style="padding:6px 10px">🗑️</button></td>
-            </tr>`;
+      // Group workouts by week
+      const workoutsGrouped = {};
+      workouts.forEach(w => {
+        const ws = weekStartIso(w.date.split('T')[0]);
+        if (!workoutsGrouped[ws]) workoutsGrouped[ws] = [];
+        workoutsGrouped[ws].push(w);
+      });
+      const workoutWeeks = Object.keys(workoutsGrouped).sort().reverse();
+      const workoutsAcc = $('#workoutsAccordion');
+      workoutsAcc.innerHTML = workoutWeeks.length > 0
+        ? workoutWeeks.map((ws, i) => {
+            const we = addDaysIso(ws, 6);
+            const items = workoutsGrouped[ws].sort((a,b) => String(b.date).localeCompare(String(a.date)));
+            return `<details ${i===0?'open':''} style="margin:10px 0; border:1px solid var(--border); border-radius:10px; padding:8px 10px; background:rgba(255,255,255,.02)">
+              <summary style="cursor:pointer; font-weight:800; display:flex; justify-content:space-between; gap:10px; list-style:none">
+                <span>Semaine ${ws} → ${we}</span>
+                <span>${items.length} séance${items.length>1?'s':''}</span>
+              </summary>
+              <div style="margin-top:8px; overflow:auto">
+                <table class="table">
+                  <thead><tr><th>Date</th><th>Durée</th><th>Exercices</th><th>Notes</th><th>Action</th></tr></thead>
+                  <tbody>
+                    ${items.map(w => {
+                      const exCount = w.exercises?.length || 0;
+                      const exText = exCount > 0 ? `${exCount} exercice${exCount > 1 ? 's' : ''}` : '—';
+                      return `<tr>
+                        <td>${w.date.split('T')[0]}</td>
+                        <td>${w.duration_min || '—'} min</td>
+                        <td>${exText}</td>
+                        <td style="color:var(--muted); font-size:13px">${w.notes || '—'}</td>
+                        <td><button class="btn" data-del-workout="${w.id}" style="padding:6px 10px">🗑️</button></td>
+                      </tr>`;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </details>`;
           }).join('')
-        : '<tr><td colspan="5" style="color:var(--muted); text-align:center">Aucune séance enregistrée</td></tr>';
+        : '<div style="color:var(--muted)">Aucune séance enregistrée</div>';
 
       // Cardio history
       const cardio = await api(`/cardio?start=${workoutsStart}&end=${isoToday()}`);
-      const cardioTable = $('#cardioHistoryTable');
-      cardioTable.innerHTML = cardio.length > 0
-        ? cardio.slice(0, 20).map(c => `<tr>
-            <td>${c.date.split('T')[0]}</td>
-            <td>${c.type}</td>
-            <td>${c.duration_min} min</td>
-            <td>${c.intensity || '—'}</td>
-            <td>${c.calories || '—'}</td>
-            <td><button class="btn" data-del-cardio="${c.id}" style="padding:6px 10px">🗑️</button></td>
-          </tr>`).join('')
-        : '<tr><td colspan="6" style="color:var(--muted); text-align:center">Aucun cardio enregistré</td></tr>';
+      const cardioGrouped = {};
+      cardio.forEach(c => {
+        const ws = weekStartIso(c.date.split('T')[0]);
+        if (!cardioGrouped[ws]) cardioGrouped[ws] = [];
+        cardioGrouped[ws].push(c);
+      });
+      const cardioWeeks = Object.keys(cardioGrouped).sort().reverse();
+      const cardioAcc = $('#cardioAccordion');
+      cardioAcc.innerHTML = cardioWeeks.length > 0
+        ? cardioWeeks.map((ws, i) => {
+            const we = addDaysIso(ws, 6);
+            const items = cardioGrouped[ws].sort((a,b) => String(b.date).localeCompare(String(a.date)));
+            return `<details ${i===0?'open':''} style="margin:10px 0; border:1px solid var(--border); border-radius:10px; padding:8px 10px; background:rgba(255,255,255,.02)">
+              <summary style="cursor:pointer; font-weight:800; display:flex; justify-content:space-between; gap:10px; list-style:none">
+                <span>Semaine ${ws} → ${we}</span>
+                <span>${items.length} séance${items.length>1?'s':''}</span>
+              </summary>
+              <div style="margin-top:8px; overflow:auto">
+                <table class="table">
+                  <thead><tr><th>Date</th><th>Type</th><th>Durée</th><th>Intensité</th><th>Calories</th><th>Action</th></tr></thead>
+                  <tbody>
+                    ${items.map(c => `<tr>
+                      <td>${c.date.split('T')[0]}</td>
+                      <td>${c.type}</td>
+                      <td>${c.duration_min} min</td>
+                      <td>${c.intensity || '—'}</td>
+                      <td>${c.calories || '—'}</td>
+                      <td><button class="btn" data-del-cardio="${c.id}" style="padding:6px 10px">🗑️</button></td>
+                    </tr>`).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </details>`;
+          }).join('')
+        : '<div style="color:var(--muted)">Aucun cardio enregistré</div>';
 
       // Delete handlers
-      workoutsTable.querySelectorAll('[data-del-workout]').forEach(btn => {
+      workoutsAcc.querySelectorAll('[data-del-workout]').forEach(btn => {
         btn.onclick = async () => {
           if (!confirm('Supprimer cette séance muscu ?')) return;
           await api(`/workouts/${btn.dataset.delWorkout}`, { method:'DELETE' });
@@ -1058,7 +1079,7 @@
           await loadBody();
         };
       });
-      cardioTable.querySelectorAll('[data-del-cardio]').forEach(btn => {
+      cardioAcc.querySelectorAll('[data-del-cardio]').forEach(btn => {
         btn.onclick = async () => {
           if (!confirm('Supprimer cette séance cardio ?')) return;
           await api(`/cardio/${btn.dataset.delCardio}`, { method:'DELETE' });
