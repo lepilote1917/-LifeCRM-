@@ -895,7 +895,7 @@
 
       // Workouts history
       const workoutsStart = new Date(Date.now()-30*864e5).toISOString().slice(0,10);
-      const workouts = await api(`/training/workouts?start=${workoutsStart}&end=${isoToday()}`);
+      const workouts = await api(`/workouts?start=${workoutsStart}&end=${isoToday()}`);
       const workoutsTable = $('#workoutsHistoryTable');
       workoutsTable.innerHTML = workouts.length > 0 
         ? workouts.slice(0, 20).map(w => {
@@ -910,7 +910,7 @@
         : '<tr><td colspan="4" style="color:var(--muted); text-align:center">Aucune séance enregistrée</td></tr>';
 
       // Cardio history
-      const cardio = await api(`/training/cardio?start=${workoutsStart}&end=${isoToday()}`);
+      const cardio = await api(`/cardio?start=${workoutsStart}&end=${isoToday()}`);
       const cardioTable = $('#cardioHistoryTable');
       cardioTable.innerHTML = cardio.length > 0
         ? cardio.slice(0, 20).map(c => `<tr>
