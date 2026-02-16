@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LifeCRM</title>
+  <title>Gaspard CRM</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -52,8 +52,11 @@
     .brand{display:flex; align-items:center; gap:12px; padding:10px 10px 18px 10px;}
     .logo{
       width:36px; height:36px; border-radius:12px;
-      background: linear-gradient(135deg, rgba(79,124,255,1), rgba(124,77,255,1));
-      box-shadow: 0 10px 30px rgba(79,124,255,.22);
+      background: linear-gradient(135deg, #2BE7A7, #4F7CFF);
+      box-shadow: 0 10px 30px rgba(43,231,167,.28);
+      display:flex; align-items:center; justify-content:center;
+      font-weight:900; font-size:14px; letter-spacing:-1px;
+      color:#000; text-shadow: 0 1px 2px rgba(255,255,255,.3);
     }
     .brand h1{font-size:14px; margin:0; font-weight:800; letter-spacing:-.6px}
     .brand p{margin:2px 0 0 0; font-size:12px; color:var(--muted)}
@@ -171,10 +174,10 @@
   <div class="app">
     <aside class="sidebar">
       <div class="brand">
-        <div class="logo"></div>
+        <div class="logo">GC</div>
         <div>
-          <h1>LifeCRM</h1>
-          <p>Personal OS • v1 MVP</p>
+          <h1>Gaspard CRM</h1>
+          <p>Personal OS • Blindé 🔒</p>
         </div>
       </div>
       <div class="nav" id="nav">
@@ -201,6 +204,7 @@
           <span class="pill">Range: <span id="rangeLabel">30j</span></span>
           <button class="btn" id="syncWhoopBtn">Sync Whoop</button>
           <button class="btn primary" id="connectWhoopBtn">Connect Whoop</button>
+          <button class="btn" id="lockBtn" style="background: rgba(255,92,122,.15); color: var(--bad); border: 1px solid rgba(255,92,122,.3); font-weight:700" title="Verrouiller la session">🔒 Verrouiller</button>
         </div>
       </div>
 
@@ -1089,6 +1093,13 @@
     $('#connectWhoopBtn2').onclick = connectWhoop;
     $('#syncWhoopBtn').onclick = ()=>syncWhoop(30);
     $('#syncWhoopBtn2').onclick = ()=>syncWhoop(30);
+    
+    // Lock button
+    $('#lockBtn').onclick = async () => {
+      if(!confirm('🔒 Verrouiller la session ?\n\nToutes les données sont sauvegardées automatiquement.\nTu devras te reconnecter après.')) return;
+      await api('/auth/logout', { method: 'POST' });
+      location.href = '/login.html';
+    };
 
     // Nav
     $('#nav').addEventListener('click', async (e)=>{

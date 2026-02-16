@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>🔒 LifeCRM - Login</title>
+  <title>🔒 Gaspard CRM - Login</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
     :root{
@@ -34,8 +34,12 @@
     }
     .logo{
       width:48px; height:48px; margin:0 auto 20px auto;
-      background: linear-gradient(135deg, rgba(79,124,255,1), rgba(124,77,255,1));
+      background: linear-gradient(135deg, #2BE7A7, #4F7CFF);
       border-radius:16px;
+      display:flex; align-items:center; justify-content:center;
+      font-weight:900; font-size:18px; letter-spacing:-1px;
+      color:#000; text-shadow: 0 1px 2px rgba(255,255,255,.3);
+      box-shadow: 0 10px 30px rgba(43,231,167,.28);
     }
     h1{text-align:center; font-size:24px; margin-bottom:10px; letter-spacing:-.8px}
     p{text-align:center; color:rgba(255,255,255,.6); font-size:14px; margin-bottom:30px}
@@ -80,9 +84,9 @@
 </head>
 <body>
   <div class="login-box">
-    <div class="logo"></div>
-    <h1>🔒 LifeCRM</h1>
-    <p>Entrez votre mot de passe</p>
+    <div class="logo">GC</div>
+    <h1>🔒 Gaspard CRM</h1>
+    <p>Session blindée • Entrez votre code</p>
     <div class="error" id="error">Mot de passe incorrect</div>
     <form id="loginForm">
       <input type="password" id="password" placeholder="Mot de passe" autofocus required>
