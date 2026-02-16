@@ -416,7 +416,7 @@
             </table>
           </div>
           <div class="card" style="grid-column: span 12">
-            <h3>📅 Historique Séances Muscu (30 derniers jours)</h3>
+            <h3>📅 Historique Séances Muscu (30 derniers jours) • v2</h3>
             <table class="table">
               <thead>
                 <tr>
@@ -1015,7 +1015,12 @@
       // Workouts history
       const workoutsStart = new Date(Date.now()-30*864e5).toISOString().slice(0,10);
       const workouts = await api(`/workouts?start=${workoutsStart}&end=${isoToday()}`);
+      console.log('[DEBUG] Workouts loaded:', workouts.length, workouts);
       const workoutsTable = $('#workoutsHistoryTable');
+      if (!workoutsTable) {
+        console.error('[ERROR] workoutsHistoryTable element not found!');
+        return;
+      }
       workoutsTable.innerHTML = workouts.length > 0 
         ? workouts.slice(0, 20).map(w => {
             const exCount = w.exercises?.length || 0;
