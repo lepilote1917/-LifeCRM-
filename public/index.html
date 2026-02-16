@@ -377,11 +377,11 @@
                 <div class="kpi"><div class="val" style="font-size:24px; font-weight:800" id="whoopCaloriesToday">—</div></div>
               </div>
               <div class="card" style="grid-column: span 2; padding:10px">
-                <h3 style="margin:0 0 6px 0; font-size:11px">🥗 Consommées</h3>
+                <h3 style="margin:0 0 6px 0; font-size:11px">🥗 Consommées (hier)</h3>
                 <div class="kpi"><div class="val" style="font-size:24px; font-weight:800" id="caloriesConsumedToday">—</div></div>
               </div>
               <div class="card" style="grid-column: span 2; padding:10px">
-                <h3 style="margin:0 0 6px 0; font-size:11px">📊 Déficit</h3>
+                <h3 style="margin:0 0 6px 0; font-size:11px">📊 Déficit (hier)</h3>
                 <div class="kpi"><div class="val" style="font-size:24px; font-weight:800" id="calorieDeficitToday">—</div></div>
               </div>
               <div class="card" style="grid-column: span 2; padding:10px; opacity:0.4">
@@ -949,16 +949,24 @@
       $('#whoopCaloriesToday').textContent = today.calories ? `${today.calories}` : '—';
       $('#whoopSleep').textContent = today.sleep_hours ? today.sleep_hours.toFixed(1) : '—';
 
-      // Caloric deficit today
-      const nutritionToday = await api(`/nutrition?start=${isoToday()}&end=${isoToday()}`);
-      const consumedToday = nutritionToday.reduce((sum, n) => sum + (n.calories || 0), 0);
-      const burnedToday = today.calories || 0;
-      const deficitToday = burnedToday - consumedToday;
+      // Caloric deficit YESTERDAY (only show when both Whoop + nutrition data exist)
+      const yesterday = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+      const yesterdayWhoop = whoop.find(r => r.date === yesterday);
+      const nutritionYesterday = await api(`/nutrition?start=${yesterday}&end=${yesterday}`);
+      const consumedYesterday = nutritionYesterday.reduce((sum, n) => sum + (n.calories || 0), 0);
       
-      $('#caloriesConsumedToday').textContent = consumedToday || '—';
-      const deficitEl = $('#calorieDeficitToday');
-      deficitEl.textContent = deficitToday ? (deficitToday > 0 ? '+' : '') + deficitToday : '—';
-      deficitEl.style.color = deficitToday > 0 ? 'var(--good)' : deficitToday < 0 ? 'var(--bad)' : 'var(--text)';
+      if (yesterdayWhoop && yesterdayWhoop.calories && consumedYesterday > 0) {
+        const burnedYesterday = yesterdayWhoop.calories;
+        const deficitYesterday = burnedYesterday - consumedYesterday;
+        
+        $('#caloriesConsumedToday').textContent = consumedYesterday;
+        const deficitEl = $('#calorieDeficitToday');
+        deficitEl.textContent = (deficitYesterday > 0 ? '+' : '') + deficitYesterday;
+        deficitEl.style.color = deficitYesterday > 0 ? 'var(--good)' : deficitYesterday < 0 ? 'var(--bad)' : 'var(--text)';
+      } else {
+        $('#caloriesConsumedToday').textContent = '—';
+        $('#calorieDeficitToday').textContent = '—';
+      }
 
       // Whoop history table with caloric deficit
       const nutrition = await api(`/nutrition?start=${new Date(Date.now()-7*864e5).toISOString().slice(0,10)}&end=${isoToday()}`);
