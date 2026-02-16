@@ -263,11 +263,23 @@ async function achieveGoal(id) {
 
 // ===== TRAINING =====
 async function getWorkouts(startDate, endDate) {
-  const result = await pool.query(
+  const workouts = await pool.query(
     'SELECT * FROM workouts WHERE date >= $1 AND date <= $2 ORDER BY date DESC',
     [startDate, endDate]
   );
-  return result.rows;
+  
+  // Join exercises for each workout
+  const withExercises = await Promise.all(
+    workouts.rows.map(async (w) => {
+      const exercises = await pool.query(
+        'SELECT * FROM exercises WHERE workout_id = $1 ORDER BY id',
+        [w.id]
+      );
+      return { ...w, exercises: exercises.rows };
+    })
+  );
+  
+  return withExercises;
 }
 
 async function getWorkout(id) {

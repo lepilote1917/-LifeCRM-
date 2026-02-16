@@ -1019,10 +1019,11 @@
       workoutsTable.innerHTML = workouts.length > 0 
         ? workouts.slice(0, 20).map(w => {
             const exCount = w.exercises?.length || 0;
+            const exText = exCount > 0 ? `${exCount} exercice${exCount > 1 ? 's' : ''}` : '—';
             return `<tr>
-              <td>${w.date}</td>
+              <td>${w.date.split('T')[0]}</td>
               <td>${w.duration_min || '—'} min</td>
-              <td>${exCount} exercice${exCount > 1 ? 's' : ''}</td>
+              <td>${exText}</td>
               <td style="color:var(--muted); font-size:13px">${w.notes || '—'}</td>
               <td><button class="btn" data-del-workout="${w.id}" style="padding:6px 10px">🗑️</button></td>
             </tr>`;
@@ -1034,7 +1035,7 @@
       const cardioTable = $('#cardioHistoryTable');
       cardioTable.innerHTML = cardio.length > 0
         ? cardio.slice(0, 20).map(c => `<tr>
-            <td>${c.date}</td>
+            <td>${c.date.split('T')[0]}</td>
             <td>${c.type}</td>
             <td>${c.duration_min} min</td>
             <td>${c.intensity || '—'}</td>
