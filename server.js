@@ -569,10 +569,10 @@ app.post('/api/cron/whoop-sync', async (req, res) => {
       const endDateStr = (c?.end || c?.timestamp || c?.date)?.slice?.(0, 10);
       if (!endDateStr) continue;
 
-      // Whoop cycle "end" = lendemain matin. Décaler -1 jour pour mapper à la date d'activité réelle.
-      const endDate = new Date(endDateStr);
-      endDate.setDate(endDate.getDate() - 1);
-      const activityDate = endDate.toISOString().split('T')[0];
+      // Whoop cycle "end" = lendemain matin. Mapper à la date d'activité réelle.
+      // FIX: Ne PAS décaler -1 jour si Whoop retourne déjà la bonne date locale
+      // Test: si données 16 fév affichent au 15 → bug timezone
+      const activityDate = endDateStr; // Garder date brute (Whoop déjà en local timezone)
 
       const sleep = sleepByDate.get(endDateStr); // Sleep reste sur date de fin
       await db.saveWhoopData({
@@ -646,10 +646,9 @@ app.post('/api/whoop/sync', async (req, res) => {
       const endDateStr = (c?.end || c?.timestamp || c?.date || c?.cycle_end)?.slice?.(0, 10) || c?.date;
       if (!endDateStr) continue;
 
-      // Whoop cycle "end" = lendemain matin. Décaler -1 jour pour mapper à la date d'activité réelle.
-      const endDate = new Date(endDateStr);
-      endDate.setDate(endDate.getDate() - 1);
-      const activityDate = endDate.toISOString().split('T')[0];
+      // Whoop cycle "end" = lendemain matin. Mapper à la date d'activité réelle.
+      // FIX: Ne PAS décaler -1 jour si Whoop retourne déjà la bonne date locale
+      const activityDate = endDateStr; // Garder date brute (Whoop déjà en local timezone)
 
       const s = sleepByDate.get(endDateStr);
 

@@ -969,16 +969,17 @@
       const nutritionYesterday = await api(`/nutrition?start=${yesterday}&end=${yesterday}`);
       const consumedYesterday = nutritionYesterday.reduce((sum, n) => sum + (n.calories || 0), 0);
       
-      if (yesterdayWhoop && yesterdayWhoop.calories && consumedYesterday > 0) {
+      // FIX: Afficher déficit même si 0 calories consommées (jeûne)
+      if (yesterdayWhoop && yesterdayWhoop.calories !== null) {
         const burnedYesterday = yesterdayWhoop.calories;
         const deficitYesterday = burnedYesterday - consumedYesterday;
         
-        $('#caloriesConsumedToday').textContent = consumedYesterday;
+        $('#caloriesConsumedToday').textContent = consumedYesterday || 0;
         const deficitEl = $('#calorieDeficitToday');
         deficitEl.textContent = (deficitYesterday > 0 ? '+' : '') + deficitYesterday;
         deficitEl.style.color = deficitYesterday > 0 ? 'var(--good)' : deficitYesterday < 0 ? 'var(--bad)' : 'var(--text)';
       } else {
-        $('#caloriesConsumedToday').textContent = '—';
+        $('#caloriesConsumedToday').textContent = consumedYesterday || '—';
         $('#calorieDeficitToday').textContent = '—';
       }
 
